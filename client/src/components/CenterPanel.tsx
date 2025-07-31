@@ -90,7 +90,7 @@ export function CenterPanel({
           
           <div className="text-[50px] mt-[2px] mb-[2px]">🚀</div>
           
-          <h2 className="text-2xl font-semibold mb-4 hatchin-text">Kickstart your project</h2>
+          <h2 className="font-semibold mb-4 hatchin-text text-[20px]">Kickstart your project</h2>
           <p className="hatchin-text-muted mb-8">
             Share your vision and get instant help from your AI team.
           </p>
