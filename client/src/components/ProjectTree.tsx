@@ -139,9 +139,7 @@ export function ProjectTree({
                                 <span className="text-sm hatchin-text-muted truncate">
                                   {agent.name}
                                 </span>
-                                <span className="text-xs hatchin-text-muted opacity-70 flex-shrink-0">
-                                  {agent.role}
-                                </span>
+                                
                               </div>
                             );
                           })}
