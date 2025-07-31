@@ -7,6 +7,7 @@ Hatchin is a no-code AI creation workspace that enables users to design custom A
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Always ask for permission before implementing any changes - this is a system requirement.
 
 ## System Architecture
 
