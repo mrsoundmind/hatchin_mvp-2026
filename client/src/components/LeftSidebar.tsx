@@ -26,7 +26,7 @@ export function LeftSidebar({
   onSelectAgent,
 }: LeftSidebarProps) {
   return (
-    <aside className="w-80 hatchin-bg-panel rounded-2xl p-4 overflow-y-auto">
+    <aside className="w-80 hatchin-bg-panel rounded-2xl p-4 overflow-y-auto pl-[20px] pr-[20px]">
       {/* Welcome Header */}
       <div className="flex items-center justify-between mb-4 pb-4 hatchin-border border-b">
         <div className="flex items-center gap-3">
