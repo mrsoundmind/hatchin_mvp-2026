@@ -11,7 +11,8 @@ export default function Home() {
   const [activeProjectId, setActiveProjectId] = useState<string>("saas-startup");
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set(["saas-startup"]));
+  // All projects should always be expanded, and teams should be expanded by default
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [isEggHatching, setIsEggHatching] = useState(false);
   const [ideaProjectData, setIdeaProjectData] = useState<{
@@ -41,6 +42,19 @@ export default function Home() {
   const activeProject = projects.find(p => p.id === activeProjectId);
   const activeProjectTeams = teams.filter(t => t.projectId === activeProjectId);
   const activeProjectAgents = agents.filter(a => a.projectId === activeProjectId);
+
+  // Auto-expand all projects and teams when data loads
+  useEffect(() => {
+    if (projects.length > 0) {
+      setExpandedProjects(new Set(projects.map(p => p.id)));
+    }
+  }, [projects]);
+
+  useEffect(() => {
+    if (teams.length > 0) {
+      setExpandedTeams(new Set(teams.map(t => t.id)));
+    }
+  }, [teams]);
 
   // Toggle functions for expand/collapse
   const toggleProjectExpanded = (projectId: string) => {
@@ -108,7 +122,7 @@ export default function Home() {
         setActiveTeamId(null);
         setActiveAgentId(null);
         
-        // Expand the new project  
+        // Auto-expand the new project 
         setExpandedProjects(prev => {
           const newSet = new Set(prev);
           newSet.add(newProject.id);
@@ -292,14 +306,14 @@ export default function Home() {
             setActiveTeamId(null);
             setActiveAgentId(null);
             
-            // Expand the new project and all its teams
+            // Auto-expand the new project and all its teams
             setExpandedProjects(prev => {
               const newSet = new Set(prev);
               newSet.add(newProject.id);
               return newSet;
             });
             
-            // Get teams for this project and expand them
+            // Get teams for this project and auto-expand them
             const teams = (await fetch(`/api/projects/${newProject.id}/teams`).then(res => res.json())) as Team[];
             setExpandedTeams(prev => {
               const newSet = new Set(prev);

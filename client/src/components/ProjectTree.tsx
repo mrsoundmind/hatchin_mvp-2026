@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronRight, MoreHorizontal, FileText } from "lucide-react";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface ProjectTreeProps {
@@ -74,6 +74,23 @@ export function ProjectTree({
       .slice(0, 2);
   };
 
+  const getProjectIconColor = (color: string) => {
+    switch (color) {
+      case 'blue':
+        return 'text-[#6C82FF]';
+      case 'green':
+        return 'text-[#47DB9A]';
+      case 'purple':
+        return 'text-[#9F7BFF]';
+      case 'amber':
+        return 'text-[#FFB547]';
+      case 'red':
+        return 'text-[#FF4E6A]';
+      default:
+        return 'text-[#6C82FF]';
+    }
+  };
+
   return (
     <div className="space-y-1">
       {projects.map(project => {
@@ -107,8 +124,8 @@ export function ProjectTree({
                     )
                   )}
                 </div>
+                <FileText className={`w-4 h-4 mr-2 ${getProjectIconColor(project.color)}`} />
                 <span className="text-sm font-medium hatchin-text truncate">
-                  <span className="mr-2">{project.emoji}</span>
                   {highlightMatch(project.name, searchQuery)}
                 </span>
               </div>
