@@ -95,7 +95,7 @@ export function CenterPanel({
             Share your vision and get instant help from your AI team.
           </p>
           
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="flex flex-wrap gap-3 justify-center pt-[11px] pb-[11px]">
             <button 
               onClick={() => handleActionClick('generateRoadmap')}
               className="hatchin-bg-card hover:bg-hatchin-border hatchin-text px-4 py-2 rounded-lg text-sm font-medium transition-colors"
