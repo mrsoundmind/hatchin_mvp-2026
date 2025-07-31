@@ -152,7 +152,7 @@ export function CenterPanel({
       case 'project':
         return {
           title: `${activeProject?.emoji} ${activeProject?.name}`,
-          subtitle: `Project Chat • ${participants.length} AI teammates`,
+          subtitle: `Project Chat • ${participants.length} Colleagues`,
           participants,
           placeholder: `Message all teams in ${activeProject?.name}...`,
           welcomeTitle: 'Talk to your entire project team',
@@ -164,7 +164,7 @@ export function CenterPanel({
         const activeTeam = activeProjectTeams.find(t => t.id === activeTeamId);
         return {
           title: `${activeTeam?.emoji} ${activeTeam?.name}`,
-          subtitle: `Team Chat • ${participants.length} AI teammates`,
+          subtitle: `Team Chat • ${participants.length} Colleague`,
           participants,
           placeholder: `Message ${activeTeam?.name} team...`,
           welcomeTitle: `Collaborate with ${activeTeam?.name}`,
