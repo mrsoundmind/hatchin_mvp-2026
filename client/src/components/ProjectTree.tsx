@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, MoreHorizontal, FileText, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, MoreHorizontal, FileText, Users, User } from "lucide-react";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface ProjectTreeProps {
@@ -192,11 +192,7 @@ export function ProjectTree({
                                 }`}
                                 onClick={() => onSelectAgent(agent.id)}
                               >
-                                <div className={`w-5 h-5 rounded-full flex-shrink-0 ${getAgentColorClass(projects.find(p => p.id === agent.projectId)?.color || 'blue')} flex items-center justify-center`}>
-                                  <span className="text-xs font-semibold text-white">
-                                    {getAgentInitials(agent.name)}
-                                  </span>
-                                </div>
+                                <User className={`w-4 h-4 mr-1 ${getProjectIconColor(projects.find(p => p.id === agent.projectId)?.color || 'blue')}`} />
                                 <span className="text-sm hatchin-text-muted truncate">
                                   {highlightMatch(agent.name, searchQuery)}
                                 </span>

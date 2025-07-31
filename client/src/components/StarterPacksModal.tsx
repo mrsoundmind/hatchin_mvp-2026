@@ -608,12 +608,12 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
               const hatch = getHatchTemplate(memberName);
               return (
                 <div key={memberName} className="flex items-center gap-1 bg-[#23262B] rounded px-2 py-1">
-                  <div className={`w-4 h-4 rounded-full ${
-                    hatch?.color === 'blue' ? 'bg-[#6C82FF]' :
-                    hatch?.color === 'green' ? 'bg-[#47DB9A]' :
-                    hatch?.color === 'purple' ? 'bg-[#9F7BFF]' :
-                    hatch?.color === 'amber' ? 'bg-[#FFB547]' :
-                    'bg-[#6C82FF]'
+                  <User className={`w-3 h-3 ${
+                    pack.color === 'blue' ? 'text-[#6C82FF]' :
+                    pack.color === 'green' ? 'text-[#47DB9A]' :
+                    pack.color === 'purple' ? 'text-[#9F7BFF]' :
+                    pack.color === 'amber' ? 'text-[#FFB547]' :
+                    'text-[#6C82FF]'
                   }`} />
                   <span className="text-xs text-[#F1F1F3]">{memberName}</span>
                 </div>
