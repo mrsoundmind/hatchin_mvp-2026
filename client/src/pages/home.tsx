@@ -261,6 +261,9 @@ export default function Home() {
       const project = await response.json();
       console.log("Project created from template:", project);
       
+      // Immediately refresh all data to get the new teams and agents
+      await Promise.all([refetchProjects(), refetchTeams(), refetchAgents()]);
+      
     } catch (error) {
       console.error('Error creating project from template:', error);
       setIsPackHatching(false);
@@ -276,8 +279,8 @@ export default function Home() {
         setIsPackHatching(false);
 
         if (starterPackProjectData) {
-          // Refresh data to get the new project with teams and agents
-          refetchProjects();
+          // Refresh all data to get the new project with teams and agents
+          await Promise.all([refetchProjects(), refetchTeams(), refetchAgents()]);
           
           // Find the newly created project
           const projects = (await fetch('/api/projects').then(res => res.json())) as Project[];
