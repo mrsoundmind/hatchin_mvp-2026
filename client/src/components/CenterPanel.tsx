@@ -1,5 +1,15 @@
 import { Send } from "lucide-react";
+import { useState, useEffect } from "react";
 import type { Project, Team, Agent } from "@shared/schema";
+
+type ChatMode = 'project' | 'team' | 'agent';
+
+interface ChatContext {
+  mode: ChatMode;
+  participantIds: string[];
+  conversationId: string;
+  projectId: string;
+}
 
 interface CenterPanelProps {
   activeProject: Project | undefined;
@@ -16,6 +26,63 @@ export function CenterPanel({
   activeTeamId,
   activeAgentId,
 }: CenterPanelProps) {
+  // === SUBTASK 2.1.1: Core State Integration ===
+  
+  // Chat mode state management
+  const [chatMode, setChatMode] = useState<ChatMode>('project');
+  const [currentChatContext, setCurrentChatContext] = useState<ChatContext | null>(null);
+  
+  // useEffect to listen to activeProjectId, activeTeamId, activeAgentId changes
+  useEffect(() => {
+    if (!activeProject) {
+      setCurrentChatContext(null);
+      return;
+    }
+
+    // Implement chatMode derivation logic based on sidebar selections
+    let newMode: ChatMode;
+    let participantIds: string[];
+    let conversationId: string;
+    
+    if (activeAgentId) {
+      // Agent mode: Talk to specific agent (1-on-1)
+      newMode = 'agent';
+      participantIds = [activeAgentId];
+      conversationId = `agent-${activeProject.id}-${activeAgentId}`;
+    } else if (activeTeamId) {
+      // Team mode: Talk to all agents under specific team
+      newMode = 'team';
+      participantIds = activeProjectAgents
+        .filter(agent => agent.teamId === activeTeamId)
+        .map(agent => agent.id);
+      conversationId = `team-${activeProject.id}-${activeTeamId}`;
+    } else {
+      // Project mode: Talk to all teams and agents under project
+      newMode = 'project';
+      participantIds = activeProjectAgents.map(agent => agent.id);
+      conversationId = `project-${activeProject.id}`;
+    }
+
+    // Update chat mode and context
+    setChatMode(newMode);
+    setCurrentChatContext({
+      mode: newMode,
+      participantIds,
+      conversationId,
+      projectId: activeProject.id
+    });
+
+    // Debug logging for development
+    console.log('Chat context updated:', {
+      mode: newMode,
+      participants: participantIds.length,
+      conversationId,
+      projectId: activeProject.id
+    });
+
+  }, [activeProject?.id, activeTeamId, activeAgentId, activeProjectAgents]);
+
+  // === END SUBTASK 2.1.1 ===
   const handleActionClick = (action: string) => {
     console.log('Action triggered:', action);
     
