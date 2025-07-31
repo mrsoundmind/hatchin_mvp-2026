@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+
+  /* Hatchin Custom Colors */
+  --hatchin-dark: hsl(216, 12%, 10%);
+  --hatchin-panel: hsl(216, 10%, 14%);
+  --hatchin-card: hsl(216, 8%, 22%);
+  --hatchin-border: hsl(216, 8%, 27%);
+  --hatchin-text: hsl(210, 9%, 95%);
+  --hatchin-text-muted: hsl(216, 6%, 67%);
+  --hatchin-blue: hsl(226, 100%, 70%);
+  --hatchin-green: hsl(158, 66%, 57%);
+  --hatchin-orange: hsl(25, 100%, 64%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased min-h-screen overflow-hidden;
+    background-color: var(--hatchin-dark);
+    color: var(--hatchin-text);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .hatchin-bg-dark {
+    background-color: var(--hatchin-dark);
+  }
+
+  .hatchin-bg-panel {
+    background-color: var(--hatchin-panel);
+  }
+
+  .hatchin-bg-card {
+    background-color: var(--hatchin-card);
+  }
+
+  .hatchin-border {
+    border-color: var(--hatchin-border);
+  }
+
+  .hatchin-text {
+    color: var(--hatchin-text);
+  }
+
+  .hatchin-text-muted {
+    color: var(--hatchin-text-muted);
+  }
+
+  .hatchin-blue {
+    color: var(--hatchin-blue);
+  }
+
+  .hatchin-bg-blue {
+    background-color: var(--hatchin-blue);
+  }
+
+  .hatchin-green {
+    color: var(--hatchin-green);
+  }
+
+  .hatchin-bg-green {
+    background-color: var(--hatchin-green);
+  }
+
+  .hatchin-orange {
+    color: var(--hatchin-orange);
+  }
+
+  .hatchin-bg-orange {
+    background-color: var(--hatchin-orange);
+  }
+
+  /* Color dots for agents */
+  .agent-dot-orange {
+    background-color: var(--hatchin-orange);
+  }
+
+  .agent-dot-blue {
+    background-color: var(--hatchin-blue);
+  }
+
+  .agent-dot-green {
+    background-color: var(--hatchin-green);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hatchin-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--hatchin-card);
+}
