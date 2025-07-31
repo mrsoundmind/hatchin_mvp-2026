@@ -71,7 +71,7 @@ export function ProjectTree({
         const isProjectExpanded = expandedProjects.has(project.id);
         
         return (
-          <div key={project.id} className="space-y-1">
+          <div key={project.id} className="space-y-1 mt-[-6px] mb-[-6px]">
             {/* Project Level */}
             <div className="flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group">
               <div 
@@ -108,7 +108,6 @@ export function ProjectTree({
                 <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
             </div>
-            
             {/* Teams */}
             {isProjectExpanded && (
               <div className="ml-7 space-y-1">
