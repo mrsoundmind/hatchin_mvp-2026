@@ -117,11 +117,7 @@ export function ProjectTree({
                       {/* Team Level */}
                       <div className="flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200">
                         <div 
-                          className={`flex items-center gap-2 min-w-0 flex-1 cursor-pointer rounded-lg p-1 transition-all duration-200 ${
-                            isTeamActive 
-                              ? 'hatchin-bg-card hatchin-border border shadow-sm' 
-                              : 'hover:bg-hatchin-border hover:shadow-sm'
-                          }`}
+                          className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer rounded-lg p-1 transition-all duration-200 hover:bg-hatchin-border hover:shadow-sm mt-[-4px] mb-[-4px]"
                           onClick={() => onSelectTeam(team.id)}
                         >
                           <div 
@@ -150,7 +146,6 @@ export function ProjectTree({
                           </span>
                         </div>
                       </div>
-                      
                       {/* Agents */}
                       {isTeamExpanded && (
                         <div className="ml-7 space-y-0.5">
