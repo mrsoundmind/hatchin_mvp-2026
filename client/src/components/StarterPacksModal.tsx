@@ -512,7 +512,7 @@ export default function StarterPacksModal({
 
           {/* Template Grid */}
           <div className="flex-1 overflow-y-scroll scrollbar-stable">
-            <div className="p-4">
+            <div className="p-4 pl-[0px] pr-[0px]">
               <div 
                 className="grid gap-3"
                 style={{ 
