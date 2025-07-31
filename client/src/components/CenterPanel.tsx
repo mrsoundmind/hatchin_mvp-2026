@@ -1,5 +1,4 @@
 import { Send } from "lucide-react";
-import { ChatInterface } from "@/components/chat/ChatInterface";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface CenterPanelProps {
@@ -8,7 +7,6 @@ interface CenterPanelProps {
   activeProjectAgents: Agent[];
   activeTeamId: string | null;
   activeAgentId: string | null;
-  activeChatMode?: 'project' | 'team' | 'hatch' | null;
 }
 
 export function CenterPanel({
@@ -17,7 +15,6 @@ export function CenterPanel({
   activeProjectAgents,
   activeTeamId,
   activeAgentId,
-  activeChatMode,
 }: CenterPanelProps) {
   const handleActionClick = (action: string) => {
     console.log('Action triggered:', action);
@@ -51,30 +48,6 @@ export function CenterPanel({
             Build AI teammates that understand your goals and help you achieve them.
           </p>
         </div>
-      </main>
-    );
-  }
-
-  // Show chat interface if chat mode is active
-  if (activeChatMode && activeProject) {
-    // Generate conversation ID based on chat context
-    const conversationId = activeChatMode === 'project' 
-      ? `project-${activeProject.id}`
-      : activeChatMode === 'team' && activeTeamId
-      ? `team-${activeTeamId}`
-      : activeChatMode === 'hatch' && activeAgentId
-      ? `hatch-${activeAgentId}`
-      : `project-${activeProject.id}`;
-
-    return (
-      <main className="flex-1 hatchin-bg-panel rounded-2xl flex flex-col">
-        <ChatInterface
-          conversationId={conversationId}
-          conversationType={activeChatMode}
-          projectId={activeProject.id}
-          teamId={activeTeamId || undefined}
-          agentId={activeAgentId || undefined}
-        />
       </main>
     );
   }

@@ -11,7 +11,6 @@ export default function Home() {
   const [activeProjectId, setActiveProjectId] = useState<string>("saas-startup");
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
-  const [activeChatMode, setActiveChatMode] = useState<'project' | 'team' | 'hatch' | null>('project');
   // All projects should always be expanded, and teams should be expanded by default
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
@@ -378,7 +377,6 @@ export default function Home() {
           activeProjectAgents={activeProjectAgents}
           activeTeamId={activeTeamId}
           activeAgentId={activeAgentId}
-          activeChatMode={activeChatMode}
         />
         
         <RightSidebar
