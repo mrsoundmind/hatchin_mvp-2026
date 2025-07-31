@@ -1,6 +1,8 @@
 import { Send } from "lucide-react";
 import { useState, useEffect } from "react";
-import type { Project, Team, Agent } from "@shared/schema";
+import type { Project, Team, Agent, Message } from "@shared/schema";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 type ChatMode = 'project' | 'team' | 'agent';
 
@@ -31,6 +33,51 @@ export function CenterPanel({
   // Chat mode state management
   const [chatMode, setChatMode] = useState<ChatMode>('project');
   const [currentChatContext, setCurrentChatContext] = useState<ChatContext | null>(null);
+  
+  // Task 2.3: Message state and functionality
+  const [messageInput, setMessageInput] = useState('');
+  const queryClient = useQueryClient();
+  
+  // Fetch messages for current conversation
+  const { data: currentMessages = [] } = useQuery({
+    queryKey: ['/api/messages', currentChatContext?.conversationId],
+    enabled: !!currentChatContext?.conversationId,
+  });
+  
+  // Message sending mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async (messageData: { content: string; conversationId: string; messageType: 'user' }) => {
+      // First ensure conversation exists
+      try {
+        await apiRequest(`/api/messages/${messageData.conversationId}`, { method: 'GET' });
+      } catch (error) {
+        // If conversation doesn't exist, create it
+        if (currentChatContext) {
+          await apiRequest('/api/conversations', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: currentChatContext.conversationId,
+              projectId: currentChatContext.projectId,
+              teamId: currentChatContext.mode === 'team' ? activeTeamId : null,
+              agentId: currentChatContext.mode === 'agent' ? activeAgentId : null,
+              type: currentChatContext.mode === 'agent' ? 'hatch' : currentChatContext.mode,
+              title: `${currentChatContext.mode} Chat`,
+            }),
+          });
+        }
+      }
+      
+      return apiRequest('/api/messages', {
+        method: 'POST',
+        body: JSON.stringify(messageData),
+      });
+    },
+    onSuccess: () => {
+      // Invalidate messages to refresh the conversation
+      queryClient.invalidateQueries({ queryKey: ['/api/messages', currentChatContext?.conversationId] });
+      setMessageInput(''); // Clear input after successful send
+    },
+  });
   
   // useEffect to listen to activeProjectId, activeTeamId, activeAgentId changes
   useEffect(() => {
@@ -247,22 +294,28 @@ export function CenterPanel({
     }
   };
 
-  const handleChatSubmit = (e: React.FormEvent) => {
+  // Task 2.3: Message submission handler
+  const handleMessageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const input = form.elements.namedItem('message') as HTMLInputElement;
-    if (input.value.trim()) {
-      // Message with memory context - removed validation check that was blocking messages
-      console.log('Message sent with memory context:', {
-        message: input.value,
-        conversationId: currentChatContext?.conversationId,
-        mode: currentChatContext?.mode,
-        participants: getCurrentChatParticipants().map(p => p.name),
-        sharedMemory: chatMemoryContext?.sharedContext,
-        memoryScope: chatMemoryContext?.memoryAccess?.scope
-      });
-      input.value = '';
+    
+    if (!messageInput.trim() || !currentChatContext?.conversationId) {
+      return;
     }
+    
+    // Send message with conversation context
+    sendMessageMutation.mutate({
+      content: messageInput.trim(),
+      conversationId: currentChatContext.conversationId,
+      messageType: 'user'
+    });
+    
+    console.log('Message sent with context:', {
+      message: messageInput.trim(),
+      conversationId: currentChatContext.conversationId,
+      mode: currentChatContext.mode,
+      participants: getCurrentChatParticipants().map(p => p.name),
+      sharedMemory: chatMemoryContext?.sharedContext,
+    });
   };
 
   if (!activeProject) {
@@ -353,12 +406,47 @@ export function CenterPanel({
           </div>
         </div>
       </div>
-      {/* Chat Input */}
+      {/* Chat Messages Area - Task 2.3 Implementation */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {currentMessages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-center">
+            <div>
+              <div className="text-4xl mb-4">{contextDisplay.welcomeIcon}</div>
+              <h3 className="font-medium hatchin-text mb-2">{contextDisplay.welcomeTitle}</h3>
+              <p className="hatchin-text-muted text-sm">{contextDisplay.welcomeSubtitle}</p>
+            </div>
+          </div>
+        ) : (
+          currentMessages.map((message: any) => (
+            <div key={message.id} className={`flex ${message.messageType === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                message.messageType === 'user' 
+                  ? 'bg-hatchin-blue text-white' 
+                  : 'hatchin-bg-card hatchin-text'
+              }`}>
+                {message.messageType === 'agent' && (
+                  <div className="text-xs hatchin-text-muted mb-1">
+                    {getCurrentChatParticipants().find(p => p.id === message.agentId)?.name || 'AI Assistant'}
+                  </div>
+                )}
+                <div className="text-sm">{message.content}</div>
+                <div className="text-xs mt-1 opacity-70">
+                  {new Date(message.createdAt).toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Chat Input - Task 2.3 Implementation */}
       <div className="p-6 hatchin-border border-t">
-        <form onSubmit={handleChatSubmit} className="relative">
+        <form onSubmit={handleMessageSubmit} className="relative">
           <input 
             name="message"
             type="text" 
+            value={messageInput}
+            onChange={(e) => setMessageInput(e.target.value)}
             placeholder={contextDisplay.placeholder}
             className="w-full hatchin-bg-card hatchin-border border rounded-lg px-4 py-3 text-sm hatchin-text placeholder-hatchin-text-muted focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent"
           />

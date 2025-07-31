@@ -173,6 +173,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Alternative route for messages by conversationId (for easier API usage)
+  app.get("/api/messages/:conversationId", async (req, res) => {
+    try {
+      const messages = await storage.getMessagesByConversation(req.params.conversationId);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
   app.post("/api/messages", async (req, res) => {
     try {
       const validatedData = insertMessageSchema.parse(req.body);
