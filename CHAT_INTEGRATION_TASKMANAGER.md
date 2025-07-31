@@ -38,11 +38,11 @@ Integration of comprehensive chat system with three levels (Project/Team/Hatch),
 ### Phase 2: Chat UI Components
 **Priority**: High | **Status**: ⏳ Pending | **Estimate**: 3-4 hours
 
-#### Task 2.1: Core Chat Interface ✅ COMPLETED
-- [x] Create `ChatPanel` component for center panel
-- [x] Design message bubble components
-- [x] Implement chat input with send functionality
-- [x] Add chat header with context information
+#### Task 2.1: Core Chat Interface
+- [ ] Create `ChatPanel` component for center panel
+- [ ] Design message bubble components
+- [ ] Implement chat input with send functionality
+- [ ] Add chat header with context information
 
 #### Task 2.2: Chat Type Selection
 - [ ] Create chat type switcher (Project/Team/Hatch)
@@ -151,12 +151,12 @@ Integration of comprehensive chat system with three levels (Project/Team/Hatch),
 ---
 
 ## 🎯 Current Priority
-**Next Task**: Phase 2, Task 2.2 - Chat Type Selection
+**Next Task**: Phase 2, Task 2.1 - Core Chat Interface
 
 ## 📊 Progress Tracking
-- **Completed**: 4/18 tasks (22%)
+- **Completed**: 3/18 tasks (17%)
 - **In Progress**: 0/18 tasks  
-- **Pending**: 14/18 tasks (78%)
+- **Pending**: 15/18 tasks (83%)
 
 ## 🔄 Decision Points
 1. **Initial Chat Type**: Start with Hatch Chat (1-on-1)
