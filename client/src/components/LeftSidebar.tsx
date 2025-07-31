@@ -37,7 +37,6 @@ export function LeftSidebar({
         </div>
         <ChevronDown className="w-3 h-3 hatchin-text-muted" />
       </div>
-
       {/* Search Bar */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 hatchin-text-muted" />
@@ -47,11 +46,10 @@ export function LeftSidebar({
           className="w-full hatchin-bg-card hatchin-border border rounded-lg pl-10 pr-4 py-2.5 text-sm hatchin-text placeholder-hatchin-text-muted focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent"
         />
       </div>
-
       {/* Projects Section */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-medium hatchin-text-muted uppercase tracking-wide">
+          <h2 className="font-medium hatchin-text-muted uppercase tracking-wide text-[12px]">
             Projects
           </h2>
           <button className="hatchin-blue hover:bg-hatchin-card px-2 py-1 rounded text-xs font-medium transition-colors">
