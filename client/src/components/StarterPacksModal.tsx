@@ -541,7 +541,7 @@ interface TemplateCardProps {
 function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardProps) {
   return (
     <motion.div
-      className="bg-[#37383B] rounded-xl p-4 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50 pl-[12px] pr-[12px]"
+      className="bg-[#37383B] rounded-xl p-4 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50 pl-[19px] pr-[19px]"
       style={{ 
         width: '320px', 
         height: '256px',
