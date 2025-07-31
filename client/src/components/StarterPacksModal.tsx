@@ -445,7 +445,7 @@ export default function StarterPacksModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#23262B] rounded-2xl w-full max-w-6xl max-h-[90vh] border border-[#43444B] shadow-2xl flex flex-col">
+      <div className="bg-[#23262B] rounded-2xl border border-[#43444B] shadow-2xl flex flex-col" style={{ width: '1200px', height: '700px' }}>
         {/* Header */}
         <div className="p-6 border-b border-[#43444B] flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -511,12 +511,13 @@ export default function StarterPacksModal({
           </div>
 
           {/* Template Grid */}
-          <div className="flex-1 overflow-y-scroll scrollbar-stable">
+          <div className="flex-1 overflow-y-auto scrollbar-stable">
             <div className="p-4">
               <div 
-                className="grid gap-4 grid-cols-3"
+                className="grid gap-4"
                 style={{ 
-                  gridTemplateColumns: 'repeat(3, 1fr)'
+                  gridTemplateColumns: 'repeat(3, 320px)', 
+                  justifyContent: 'start'
                 }}
               >
                 {starterPacksByCategory[activeCategory]?.packs.map(pack => (
@@ -549,6 +550,7 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
     <motion.div
       className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50"
       style={{ 
+        width: '320px',
         minHeight: '200px'
       }}
       onClick={onSelect}
