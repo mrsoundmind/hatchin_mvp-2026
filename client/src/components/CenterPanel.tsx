@@ -266,6 +266,15 @@ export function CenterPanel({
               })}
             </div>
           )}
+          {currentChatContext?.mode === 'team' && (
+            <div className="flex items-center gap-4">
+              {contextDisplay.participants.map(agent => (
+                <span key={agent.id} className="hatchin-text text-[12px]">
+                  🤖 {agent.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       {/* Dynamic Welcome Content */}
