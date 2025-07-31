@@ -73,9 +73,9 @@ export function CenterPanel({
             {activeProjectTeams.map(team => {
               const teamAgentCount = activeProjectAgents.filter(a => a.teamId === team.id).length;
               return (
-                <span key={team.id} className="text-sm hatchin-text">
-                  {team.emoji} {team.name} ({teamAgentCount})
-                </span>
+                <span key={team.id} className="hatchin-text text-[12px]">
+                  {team.emoji} {team.name}({teamAgentCount})
+                                  </span>
               );
             })}
           </div>
