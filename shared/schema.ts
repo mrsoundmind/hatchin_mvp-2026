@@ -44,6 +44,27 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
+export const messages = pgTable("messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").$type<'user' | 'system' | 'hatch'>().notNull(),
+  author: text("author").notNull(),
+  hatchId: varchar("hatch_id").references(() => agents.id),
+  teamId: varchar("team_id").references(() => teams.id),
+  projectId: varchar("project_id").references(() => projects.id).notNull(),
+  content: text("content").notNull(),
+  timestamp: text("timestamp").notNull().default(sql`now()`),
+  metadata: jsonb("metadata").$type<{
+    isStreaming?: boolean;
+    streamProgress?: number;
+    personality?: any;
+    taskContext?: string[];
+    referencedMessages?: string[];
+    attachments?: any[];
+    reactions?: any[];
+    isSystemGenerated?: boolean;
+  }>().default({}),
+});
+
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
 });
@@ -61,6 +82,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  timestamp: true,
+});
+
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
@@ -69,3 +95,5 @@ export type InsertAgent = z.infer<typeof insertAgentSchema>;
 export type Agent = typeof agents.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;

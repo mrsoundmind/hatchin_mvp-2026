@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent } from "@shared/schema";
+import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent, type Message, type InsertMessage } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -29,6 +29,16 @@ export interface IStorage {
   createAgent(agent: InsertAgent): Promise<Agent>;
   updateAgent(id: string, updates: Partial<Agent>): Promise<Agent | undefined>;
   deleteAgent(id: string): Promise<boolean>;
+  
+  // Messages
+  getMessages(): Promise<Message[]>;
+  getMessagesByProject(projectId: string): Promise<Message[]>;
+  getMessagesByTeam(teamId: string): Promise<Message[]>;
+  getMessagesByHatch(hatchId: string): Promise<Message[]>;
+  getMessage(id: string): Promise<Message | undefined>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined>;
+  deleteMessage(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -36,12 +46,14 @@ export class MemStorage implements IStorage {
   private projects: Map<string, Project>;
   private teams: Map<string, Team>;
   private agents: Map<string, Agent>;
+  private messages: Map<string, Message>;
 
   constructor() {
     this.users = new Map();
     this.projects = new Map();
     this.teams = new Map();
     this.agents = new Map();
+    this.messages = new Map();
     
     // Initialize with sample data matching the prototype
     this.initializeSampleData();
@@ -312,6 +324,48 @@ export class MemStorage implements IStorage {
 
   async deleteAgent(id: string): Promise<boolean> {
     return this.agents.delete(id);
+  }
+
+  // Message methods
+  async getMessages(): Promise<Message[]> {
+    return Array.from(this.messages.values());
+  }
+
+  async getMessagesByProject(projectId: string): Promise<Message[]> {
+    return Array.from(this.messages.values()).filter(message => message.projectId === projectId);
+  }
+
+  async getMessagesByTeam(teamId: string): Promise<Message[]> {
+    return Array.from(this.messages.values()).filter(message => message.teamId === teamId);
+  }
+
+  async getMessagesByHatch(hatchId: string): Promise<Message[]> {
+    return Array.from(this.messages.values()).filter(message => message.hatchId === hatchId);
+  }
+
+  async getMessage(id: string): Promise<Message | undefined> {
+    return this.messages.get(id);
+  }
+
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const id = randomUUID();
+    const timestamp = new Date().toISOString();
+    const message: Message = { ...insertMessage, id, timestamp };
+    this.messages.set(id, message);
+    return message;
+  }
+
+  async updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined> {
+    const message = this.messages.get(id);
+    if (!message) return undefined;
+    
+    const updatedMessage = { ...message, ...updates };
+    this.messages.set(id, updatedMessage);
+    return updatedMessage;
+  }
+
+  async deleteMessage(id: string): Promise<boolean> {
+    return this.messages.delete(id);
   }
 }
 
