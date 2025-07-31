@@ -58,10 +58,10 @@ export function ProjectTree({
             {/* Project Level */}
             <div className="flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group">
               <div 
-                className={`flex items-center gap-2 min-w-0 flex-1 cursor-pointer ${
+                className={`flex items-center gap-2 min-w-0 flex-1 cursor-pointer rounded-lg p-2 transition-all duration-200 ${
                   isProjectActive 
-                    ? 'hatchin-bg-card hatchin-border border rounded-lg p-2' 
-                    : 'hover:bg-hatchin-border hover:border-transparent rounded-lg p-2'
+                    ? 'hatchin-bg-card hatchin-border border shadow-sm' 
+                    : 'hover:bg-hatchin-border hover:shadow-sm'
                 }`}
                 onClick={() => onSelectProject(project.id)}
               >
@@ -105,10 +105,10 @@ export function ProjectTree({
                       {/* Team Level */}
                       <div className="flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200">
                         <div 
-                          className={`flex items-center gap-2 min-w-0 flex-1 cursor-pointer ${
+                          className={`flex items-center gap-2 min-w-0 flex-1 cursor-pointer rounded-lg p-1 transition-all duration-200 ${
                             isTeamActive 
-                              ? 'hatchin-bg-card hatchin-border border rounded-lg p-1' 
-                              : 'hover:bg-hatchin-border hover:border-transparent rounded-lg p-1'
+                              ? 'hatchin-bg-card hatchin-border border shadow-sm' 
+                              : 'hover:bg-hatchin-border hover:shadow-sm'
                           }`}
                           onClick={() => onSelectTeam(team.id)}
                         >
@@ -150,8 +150,8 @@ export function ProjectTree({
                                 key={agent.id}
                                 className={`flex items-center gap-3 px-3 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ${
                                   isAgentActive 
-                                    ? 'hatchin-bg-card hatchin-border border' 
-                                    : 'hover:bg-hatchin-border hover:border-transparent'
+                                    ? 'hatchin-bg-card hatchin-border border shadow-sm' 
+                                    : 'hover:bg-hatchin-border hover:shadow-sm'
                                 }`}
                                 onClick={() => onSelectAgent(agent.id)}
                               >
