@@ -88,7 +88,7 @@ export function CenterPanel({
             Welcome! This is where your whole project team works together.
           </p>
           
-          <div className="mb-6 text-[50px]">🚀</div>
+          <div className="text-[50px] mt-[2px] mb-[2px]">🚀</div>
           
           <h2 className="text-2xl font-semibold mb-4 hatchin-text">Kickstart your project</h2>
           <p className="hatchin-text-muted mb-8">
