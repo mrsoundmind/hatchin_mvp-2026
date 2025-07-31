@@ -84,7 +84,7 @@ export function CenterPanel({
       {/* Welcome Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="max-w-lg">
-          <p className="hatchin-text-muted mt-[0px] mb-[0px]">
+          <p className="hatchin-text-muted mt-[0px] mb-[0px] text-[12px]">
             Welcome! This is where your whole project team works together.
           </p>
           
