@@ -629,7 +629,7 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
         </div>
       </div>
       {/* CTA Button - Fixed at bottom */}
-      <div className="mt-auto pt-3 border-t border-[#43444B]">
+      <div className="border-t border-[#43444B] pt-[7px] pb-[7px] mt-[6px] mb-[6px]">
         <button
           className={`w-full px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium ${
             isSelected 
