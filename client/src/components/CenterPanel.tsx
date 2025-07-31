@@ -251,8 +251,8 @@ export function CenterPanel({
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const input = form.elements.namedItem('message') as HTMLInputElement;
-    if (input.value.trim() && isMemoryContextValid()) {
-      // Message with memory context
+    if (input.value.trim()) {
+      // Message with memory context - removed validation check that was blocking messages
       console.log('Message sent with memory context:', {
         message: input.value,
         conversationId: currentChatContext?.conversationId,
