@@ -1,277 +1,188 @@
-import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useWebSocket, getWebSocketUrl, type SendMessageData } from '@/lib/websocket';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-
-interface Message {
-  id: string;
-  conversationId: string;
-  userId: string | null;
-  agentId: string | null;
-  content: string;
-  messageType: 'user' | 'agent' | 'system';
-  metadata: Record<string, any>;
-  createdAt: string;
-  updatedAt: string;
-}
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { MessageList } from '@/components/chat/MessageList';
+import { ChatInput } from '@/components/chat/ChatInput';
+import { TypingIndicator } from '@/components/chat/TypingIndicator';
+import { useWebSocket, getWebSocketUrl } from '@/lib/websocket';
+import type { Message, Conversation } from '@shared/schema';
 
 interface ChatInterfaceProps {
   conversationId: string;
-  chatType: 'project' | 'team' | 'hatch';
+  conversationType: 'project' | 'team' | 'hatch';
   projectId: string;
   teamId?: string;
   agentId?: string;
-  agentName?: string;
-  agentColor?: string;
 }
 
-export function ChatInterface({
-  conversationId,
-  chatType,
-  projectId,
-  teamId,
-  agentId,
-  agentName,
-  agentColor = 'blue'
+export function ChatInterface({ 
+  conversationId, 
+  conversationType, 
+  projectId, 
+  teamId, 
+  agentId 
 }: ChatInterfaceProps) {
-  const [message, setMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [typingAgents, setTypingAgents] = useState<Set<string>>(new Set());
 
-  // WebSocket connection
-  const { connectionStatus, sendMessage: sendWebSocketMessage } = useWebSocket(
+  // Fetch existing messages
+  const { data: existingMessages, isLoading } = useQuery({
+    queryKey: ['/api/conversations', conversationId, 'messages'],
+    queryFn: async () => {
+      const response = await fetch(`/api/conversations/${conversationId}/messages`);
+      if (!response.ok) throw new Error('Failed to fetch messages');
+      return response.json() as Promise<Message[]>;
+    },
+    enabled: !!conversationId
+  });
+
+  // WebSocket connection for real-time updates
+  const { sendMessage, connectionStatus, lastMessage } = useWebSocket(
     getWebSocketUrl(),
     {
-      onMessage: (wsMessage) => {
-        if (wsMessage.type === 'message_received') {
-          // Invalidate and refetch messages when new message received
-          queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
-        }
-        if (wsMessage.type === 'typing_indicator') {
-          setIsTyping(wsMessage.isTyping && wsMessage.agentId === agentId);
-        }
-      },
       onConnect: () => {
-        // Join the conversation room when connected
-        sendWebSocketMessage({
+        // Join conversation room
+        sendMessage({
           type: 'join_conversation',
-          conversationId: conversationId
+          conversationId
         });
+      },
+      onMessage: (message) => {
+        handleWebSocketMessage(message);
       }
     }
   );
 
-  // Fetch messages
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['/api/conversations', conversationId, 'messages'],
-    enabled: !!conversationId
-  });
+  // Handle WebSocket messages
+  const handleWebSocketMessage = (wsMessage: any) => {
+    switch (wsMessage.type) {
+      case 'new_message':
+        setMessages(prev => [...prev, wsMessage.message]);
+        break;
+      case 'agent_typing_start':
+        setTypingAgents(prev => new Set([...prev, wsMessage.agentId]));
+        break;
+      case 'agent_typing_stop':
+        setTypingAgents(prev => {
+          const updated = new Set(prev);
+          updated.delete(wsMessage.agentId);
+          return updated;
+        });
+        break;
+    }
+  };
 
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageContent: string) => {
-      const messageData = {
-        conversationId,
-        userId: null, // Will be set when user auth is implemented
-        agentId: chatType === 'hatch' ? null : agentId, // User message
-        content: messageContent,
-        messageType: 'user' as const,
-        metadata: {}
+  // Initialize messages from query
+  useEffect(() => {
+    if (existingMessages) {
+      setMessages(existingMessages);
+    }
+  }, [existingMessages]);
+
+  // Send message handler
+  const handleSendMessage = async (content: string) => {
+    const newMessage = {
+      conversationId,
+      userId: null, // Will be set by auth system later
+      agentId: null,
+      content,
+      messageType: 'user' as const,
+      metadata: {}
+    };
+
+    try {
+      // Optimistic update
+      const tempMessage: Message = {
+        id: `temp-${Date.now()}`,
+        ...newMessage,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
+      setMessages(prev => [...prev, tempMessage]);
 
       // Send via WebSocket for real-time delivery
-      const wsMessage: SendMessageData = {
+      sendMessage({
         type: 'send_message',
         conversationId,
-        message: messageData
-      };
-      sendWebSocketMessage(wsMessage);
-
-      // Also save via REST API
-      return apiRequest('/api/messages', {
-        method: 'POST',
-        body: JSON.stringify(messageData)
+        message: newMessage
       });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/conversations', conversationId, 'messages'] });
-      setMessage('');
-    }
-  });
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  }, [messages]);
+      // Also persist via API
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMessage)
+      });
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || sendMessageMutation.isPending) return;
-    
-    sendMessageMutation.mutate(message.trim());
-  };
+      if (!response.ok) throw new Error('Failed to send message');
+      const savedMessage = await response.json();
 
-  const getChatTitle = () => {
-    switch (chatType) {
-      case 'project':
-        return 'Project Chat';
-      case 'team':
-        return 'Team Chat';
-      case 'hatch':
-        return agentName ? `Chat with ${agentName}` : 'Hatch Chat';
-      default:
-        return 'Chat';
+      // Replace temp message with saved one
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === tempMessage.id ? savedMessage : msg
+        )
+      );
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Remove temp message on error
+      setMessages(prev => prev.filter(msg => msg.id !== `temp-${Date.now()}`));
     }
   };
 
-  const getMessageSender = (msg: Message) => {
-    if (msg.messageType === 'user') return 'You';
-    if (msg.messageType === 'agent' && agentName) return agentName;
-    if (msg.messageType === 'system') return 'System';
-    return 'Agent';
-  };
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-gray-400">Loading conversation...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full bg-gray-900">
+    <div className="flex-1 flex flex-col h-full bg-[#0a0a0a]">
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          {chatType === 'hatch' ? (
-            <div className={`w-8 h-8 rounded-full bg-${agentColor}-500 flex items-center justify-center`}>
-              <Bot className="w-4 h-4 text-white" />
-            </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
-            </div>
-          )}
+      <div className="border-b border-gray-800 p-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-white font-medium">{getChatTitle()}</h3>
-            <div className="flex items-center gap-2 text-xs">
-              <div className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-500' :
-                connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                'bg-gray-500'
-              }`} />
-              <span className="text-gray-400">
-                {connectionStatus === 'connected' ? 'Connected' :
-                 connectionStatus === 'connecting' ? 'Connecting...' :
-                 'Disconnected'}
-              </span>
+            <h2 className="text-white font-medium">
+              {conversationType === 'project' && 'Project Chat'}
+              {conversationType === 'team' && 'Team Chat'}
+              {conversationType === 'hatch' && 'Private Chat'}
+            </h2>
+            <div className="text-xs text-gray-400 mt-1">
+              {connectionStatus === 'connected' ? (
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Connected
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                  {connectionStatus === 'connecting' ? 'Connecting...' : 'Reconnecting...'}
+                </span>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        {isLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="text-gray-400">Loading messages...</div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="text-center text-gray-400">
-              <p className="mb-2">No messages yet</p>
-              <p className="text-sm">Start the conversation!</p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((msg: Message) => (
-              <div
-                key={msg.id}
-                className={`flex gap-3 ${
-                  msg.messageType === 'user' ? 'flex-row-reverse' : 'flex-row'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-cent
-                 ${msg.messageType === 'user' 
-                    ? 'bg-blue-500' 
-                    : `bg-${agentColor}-500`
-                  }`}
-                >
-                  {msg.messageType === 'user' ? (
-                    <User className="w-4 h-4 text-white" />
-                  ) : (
-                    <Bot className="w-4 h-4 text-white" />
-                  )}
-                </div>
-                <div className={`max-w-[70%] ${
-                  msg.messageType === 'user' ? 'text-right' : 'text-left'
-                }`}>
-                  <div className="text-xs text-gray-400 mb-1">
-                    {getMessageSender(msg)}
-                  </div>
-                  <div className={`rounded-lg px-4 py-2 ${
-                    msg.messageType === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-100'
-                  }`}>
-                    {msg.content}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {new Date(msg.createdAt).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex gap-3">
-                <div className={`w-8 h-8 rounded-full bg-${agentColor}-500 flex items-center justify-center`}>
-                  <Bot className="w-4 h-4 text-white" />
-                </div>
-                <div className="bg-gray-700 rounded-lg px-4 py-2">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  </div>
-                </div>
-              </div>
-            )}
+      <div className="flex-1 flex flex-col min-h-0">
+        <MessageList messages={messages} />
+        
+        {/* Typing Indicators */}
+        {typingAgents.size > 0 && (
+          <div className="px-4 py-2">
+            <TypingIndicator agentIds={[...typingAgents]} />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
-      {/* Message Input */}
-      <div className="p-4 border-t border-gray-700">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={`Message ${chatType === 'hatch' ? agentName || 'agent' : 'team'}...`}
-            className="flex-1 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-            disabled={sendMessageMutation.isPending || connectionStatus !== 'connected'}
-          />
-          <Button
-            type="submit"
-            disabled={!message.trim() || sendMessageMutation.isPending || connectionStatus !== 'connected'}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
-        {connectionStatus !== 'connected' && (
-          <p className="text-xs text-yellow-400 mt-2">
-            Reconnecting to chat server...
-          </p>
-        )}
+      {/* Chat Input */}
+      <div className="border-t border-gray-800">
+        <ChatInput 
+          onSendMessage={handleSendMessage}
+          disabled={connectionStatus !== 'connected'}
+        />
       </div>
     </div>
   );
