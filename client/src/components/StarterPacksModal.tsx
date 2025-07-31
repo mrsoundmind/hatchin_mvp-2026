@@ -504,12 +504,18 @@ export default function StarterPacksModal({
           </div>
 
           {/* Template Grid */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-scroll scrollbar-stable">
             <div className="p-6">
-              <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, 320px)', justifyContent: 'center' }}>
+              <div 
+                className="grid gap-4"
+                style={{ 
+                  gridTemplateColumns: 'repeat(auto-fit, 320px)', 
+                  justifyContent: 'center'
+                }}
+              >
                 {starterPacksByCategory[activeCategory]?.packs.map(pack => (
                   <TemplateCard 
-                    key={pack.id} 
+                    key={`${activeCategory}-${pack.id}`}
                     pack={pack} 
                     isSelected={selectedPack === pack.id}
                     isLoading={isLoading && selectedPack === pack.id}
@@ -540,10 +546,20 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
           ? 'border-[#6C82FF] bg-[#6C82FF]/5 scale-[0.98]' 
           : 'border-[#43444B] hover:border-[#6C82FF]/50'
       }`}
-      style={{ width: '320px', height: '256px' }}
+      style={{ 
+        width: '320px', 
+        height: '256px',
+        minWidth: '320px',
+        minHeight: '256px',
+        maxWidth: '320px',
+        maxHeight: '256px',
+        flexShrink: 0
+      }}
       onClick={onSelect}
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
+      layout={false}
+      initial={false}
     >
       {/* Pack Header */}
       <div className="flex items-start justify-between mb-3">
