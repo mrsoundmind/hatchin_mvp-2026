@@ -81,7 +81,6 @@ export function CenterPanel({
           </div>
         </div>
       </div>
-      
       {/* Welcome Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="max-w-lg">
@@ -89,7 +88,7 @@ export function CenterPanel({
             Welcome! This is where your whole project team works together.
           </p>
           
-          <div className="text-6xl mb-6">🚀</div>
+          <div className="mb-6 text-[50px]">🚀</div>
           
           <h2 className="text-2xl font-semibold mb-4 hatchin-text">Kickstart your project</h2>
           <p className="hatchin-text-muted mb-8">
@@ -118,7 +117,6 @@ export function CenterPanel({
           </div>
         </div>
       </div>
-      
       {/* Chat Input */}
       <div className="p-6 hatchin-border border-t">
         <form onSubmit={handleChatSubmit} className="relative">
