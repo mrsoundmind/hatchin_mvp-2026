@@ -512,12 +512,11 @@ export default function StarterPacksModal({
 
           {/* Template Grid */}
           <div className="flex-1 overflow-y-scroll scrollbar-stable">
-            <div className="p-4 pl-[0px] pr-[0px]">
+            <div className="p-4">
               <div 
-                className="grid gap-3"
+                className="grid gap-4 grid-cols-3"
                 style={{ 
-                  gridTemplateColumns: 'repeat(auto-fit, 320px)', 
-                  justifyContent: 'center'
+                  gridTemplateColumns: 'repeat(3, 1fr)'
                 }}
               >
                 {starterPacksByCategory[activeCategory]?.packs.map(pack => (
@@ -548,15 +547,10 @@ interface TemplateCardProps {
 function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardProps) {
   return (
     <motion.div
-      className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50 pt-[18px] pb-[18px] ml-[-3px] mr-[-3px]"
+      className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50"
       style={{ 
-        width: '320px', 
-        height: '180px',
-        minWidth: '320px',
-        minHeight: '180px',
-        maxWidth: '320px',
-        maxHeight: '180px',
-        flexShrink: 0
+        height: '200px',
+        minHeight: '200px'
       }}
       onClick={onSelect}
       whileHover={{ y: -2 }}
@@ -601,9 +595,9 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
         </div>
       </div>
       {/* Team Preview - Compact */}
-      <div className="flex-1 overflow-hidden mt-1">
+      <div className="mt-2 mb-2">
         <div className="flex flex-wrap gap-1">
-          {pack.members.slice(0, 6).map((memberName: string) => {
+          {pack.members.slice(0, 4).map((memberName: string) => {
             const hatch = getHatchTemplate(memberName);
             return (
               <div key={memberName} className="flex items-center gap-1 bg-[#23262B] rounded px-2 py-1">
@@ -619,9 +613,9 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
             );
           })}
           
-          {pack.members.length > 6 && (
+          {pack.members.length > 4 && (
             <div className="flex items-center justify-center bg-[#23262B] rounded px-2 py-1">
-              <span className="text-xs text-[#A6A7AB]">+{pack.members.length - 6}</span>
+              <span className="text-xs text-[#A6A7AB]">+{pack.members.length - 4}</span>
             </div>
           )}
         </div>
