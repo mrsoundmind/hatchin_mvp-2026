@@ -164,7 +164,7 @@ export function CenterPanel({
         const activeTeam = activeProjectTeams.find(t => t.id === activeTeamId);
         return {
           title: `${activeTeam?.emoji} ${activeTeam?.name}`,
-          subtitle: `Team Chat • ${participants.length} Colleague`,
+          subtitle: `Team Chat • ${participants.length} Colleagues`,
           participants,
           placeholder: `Message ${activeTeam?.name} team...`,
           welcomeTitle: `Collaborate with ${activeTeam?.name}`,
