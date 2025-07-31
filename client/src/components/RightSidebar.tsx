@@ -35,7 +35,7 @@ export function RightSidebar({ activeProject }: RightSidebarProps) {
 
   return (
     <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mt-[5px] mb-[5px]">
         <h2 className="font-semibold hatchin-text text-[16px]">🧠 Project Overview</h2>
         <button className="hatchin-text-muted hover:text-hatchin-text">
           <X className="w-4 h-4" />
