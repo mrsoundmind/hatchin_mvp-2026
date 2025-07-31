@@ -548,14 +548,14 @@ interface TemplateCardProps {
 function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardProps) {
   return (
     <motion.div
-      className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50 pt-[11px] pb-[11px]"
+      className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50"
       style={{ 
         width: '320px', 
-        height: '256px',
+        height: '180px',
         minWidth: '320px',
-        minHeight: '256px',
+        minHeight: '180px',
         maxWidth: '320px',
-        maxHeight: '256px',
+        maxHeight: '180px',
         flexShrink: 0
       }}
       onClick={onSelect}
@@ -565,9 +565,9 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
       initial={false}
     >
       {/* Pack Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${
             pack.color === 'blue' ? 'bg-[#6C82FF]/20' :
             pack.color === 'green' ? 'bg-[#47DB9A]/20' :
             pack.color === 'purple' ? 'bg-[#9F7BFF]/20' :
@@ -586,50 +586,48 @@ function TemplateCard({ pack, isSelected, isLoading, onSelect }: TemplateCardPro
                   animate={{ scale: 1 }} 
                   className="text-[#6C82FF]"
                 >
-                  <Sparkles size={12} />
+                  <Sparkles size={10} />
                 </motion.div>
               )}
             </h3>
-            <p className="text-[#A6A7AB] text-xs leading-relaxed">
+            <p className="text-[#A6A7AB] text-xs leading-tight">
               {pack.description}
             </p>
           </div>
         </div>
-        <div className="ml-2 text-[#A6A7AB] flex items-center gap-1">
-          <Users size={12} />
+        <div className="ml-1 text-[#A6A7AB] flex items-center gap-1">
+          <Users size={10} />
           <span className="text-xs">{pack.members.length}</span>
         </div>
       </div>
-      {/* Team Preview - Scrollable */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto space-y-2">
-          <div className="flex flex-wrap gap-1">
-            {pack.members.slice(0, 3).map((memberName: string) => {
-              const hatch = getHatchTemplate(memberName);
-              return (
-                <div key={memberName} className="flex items-center gap-1 bg-[#23262B] rounded px-2 py-1">
-                  <User className={`w-3 h-3 ${
-                    pack.color === 'blue' ? 'text-[#6C82FF]' :
-                    pack.color === 'green' ? 'text-[#47DB9A]' :
-                    pack.color === 'purple' ? 'text-[#9F7BFF]' :
-                    pack.color === 'amber' ? 'text-[#FFB547]' :
-                    'text-[#6C82FF]'
-                  }`} />
-                  <span className="text-xs text-[#F1F1F3]">{memberName}</span>
-                </div>
-              );
-            })}
-            
-            {pack.members.length > 3 && (
-              <div className="flex items-center justify-center bg-[#23262B] rounded px-2 py-1">
-                <span className="text-xs text-[#A6A7AB]">+{pack.members.length - 3}</span>
+      {/* Team Preview - Compact */}
+      <div className="flex-1 overflow-hidden mt-1">
+        <div className="flex flex-wrap gap-1">
+          {pack.members.slice(0, 6).map((memberName: string) => {
+            const hatch = getHatchTemplate(memberName);
+            return (
+              <div key={memberName} className="flex items-center gap-1 bg-[#23262B] rounded px-2 py-1">
+                <User className={`w-3 h-3 ${
+                  pack.color === 'blue' ? 'text-[#6C82FF]' :
+                  pack.color === 'green' ? 'text-[#47DB9A]' :
+                  pack.color === 'purple' ? 'text-[#9F7BFF]' :
+                  pack.color === 'amber' ? 'text-[#FFB547]' :
+                  'text-[#6C82FF]'
+                }`} />
+                <span className="text-xs text-[#F1F1F3]">{memberName}</span>
               </div>
-            )}
-          </div>
+            );
+          })}
+          
+          {pack.members.length > 6 && (
+            <div className="flex items-center justify-center bg-[#23262B] rounded px-2 py-1">
+              <span className="text-xs text-[#A6A7AB]">+{pack.members.length - 6}</span>
+            </div>
+          )}
         </div>
       </div>
       {/* CTA Button - Fixed at bottom */}
-      <div className="border-t border-[#43444B] pt-[7px] pb-[7px] mt-[6px] mb-[6px]">
+      <div className="mt-auto pt-2">
         <button
           className={`w-full px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium ${
             isSelected 
