@@ -54,11 +54,34 @@ Integration of comprehensive chat system into existing EnhancedMultiAgentChat co
 **Priority**: Critical | **Status**: ⏳ Next | **Estimate**: 2-3 hours
 
 #### Task 2.1: Chat Mode State Management
-- [ ] Integrate chat modes into EnhancedMultiAgentChat component
-- [ ] Add chatMode state with Project/Team/Agent modes
-- [ ] Connect chat context to ProjectSidebar selection states (no UI changes to chat)
-- [ ] Implement automatic mode switching based on sidebar selections
-- [ ] Ensure project memory is shared across all teams/agents under same project
+
+**Subtask 2.1.1: Core State Integration**
+- [ ] Add chatMode state ('project' | 'team' | 'agent') to EnhancedMultiAgentChat
+- [ ] Create useEffect to listen to activeProjectId, activeTeamId, activeAgentId changes
+- [ ] Implement chatMode derivation logic based on sidebar selections
+- [ ] Add currentChatContext state to track active conversation participants
+
+**Subtask 2.1.2: Context Calculation Logic**
+- [ ] Create getCurrentChatParticipants() function:
+  * Project mode: Return all agents under activeProject
+  * Team mode: Return all agents under activeTeam
+  * Agent mode: Return single activeAgent
+- [ ] Add getSharedProjectMemory() function for memory context
+- [ ] Implement conversation ID generation based on chat context
+
+**Subtask 2.1.3: Automatic Mode Switching**
+- [ ] Implement mode switching logic:
+  * When project selected (no team/agent): chatMode = 'project'
+  * When team selected: chatMode = 'team'
+  * When agent selected: chatMode = 'agent'
+- [ ] Add conversation switching when context changes
+- [ ] Ensure smooth state transitions without UI flicker
+
+**Subtask 2.1.4: Memory Architecture Setup**
+- [ ] Connect chat context to shared project memory system
+- [ ] Ensure all participants under same project access same memory
+- [ ] Add memory context passing to conversation state
+- [ ] Test memory persistence across context switches
 
 #### Task 2.2: Chat Header Enhancement
 - [ ] Update existing chat header with contextual title (no mode selector tabs)
