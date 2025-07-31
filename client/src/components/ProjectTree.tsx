@@ -8,9 +8,13 @@ interface ProjectTreeProps {
   activeProjectId: string | null;
   activeTeamId: string | null;
   activeAgentId: string | null;
+  expandedProjects: Set<string>;
+  expandedTeams: Set<string>;
   onSelectProject: (projectId: string) => void;
   onSelectTeam: (teamId: string | null) => void;
   onSelectAgent: (agentId: string | null) => void;
+  onToggleProjectExpanded: (projectId: string) => void;
+  onToggleTeamExpanded: (teamId: string) => void;
 }
 
 export function ProjectTree({
@@ -20,9 +24,13 @@ export function ProjectTree({
   activeProjectId,
   activeTeamId,
   activeAgentId,
+  expandedProjects,
+  expandedTeams,
   onSelectProject,
   onSelectTeam,
   onSelectAgent,
+  onToggleProjectExpanded,
+  onToggleTeamExpanded,
 }: ProjectTreeProps) {
   const getAgentColorClass = (color: string) => {
     switch (color) {
@@ -43,28 +51,34 @@ export function ProjectTree({
         const projectTeams = teams.filter(t => t.projectId === project.id);
         const isProjectActive = project.id === activeProjectId;
         
+        const isProjectExpanded = expandedProjects.has(project.id);
+        
         return (
           <div key={project.id} className="space-y-1">
             {/* Project Level */}
-            <div 
-              className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 group ${
-                isProjectActive 
-                  ? 'hatchin-bg-card hatchin-border border' 
-                  : 'hover:bg-hatchin-border hover:border-transparent'
-              }`}
-              onClick={() => {
-                onSelectProject(project.id);
-                onSelectTeam(null);
-                onSelectAgent(null);
-              }}
-            >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="flex-shrink-0">
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 group">
+              <div 
+                className={`flex items-center gap-2 min-w-0 flex-1 cursor-pointer ${
+                  isProjectActive 
+                    ? 'hatchin-bg-card hatchin-border border rounded-lg p-2' 
+                    : 'hover:bg-hatchin-border hover:border-transparent rounded-lg p-2'
+                }`}
+                onClick={() => onSelectProject(project.id)}
+              >
+                <div 
+                  className="flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (projectTeams.length > 0) {
+                      onToggleProjectExpanded(project.id);
+                    }
+                  }}
+                >
                   {projectTeams.length > 0 && (
-                    project.isExpanded ? (
-                      <ChevronDown className="w-3.5 h-3.5 hatchin-text-muted" />
+                    isProjectExpanded ? (
+                      <ChevronDown className="w-3.5 h-3.5 hatchin-text-muted hover:hatchin-text cursor-pointer" />
                     ) : (
-                      <ChevronRight className="w-3.5 h-3.5 hatchin-text-muted" />
+                      <ChevronRight className="w-3.5 h-3.5 hatchin-text-muted hover:hatchin-text cursor-pointer" />
                     )
                   )}
                 </div>
@@ -79,33 +93,39 @@ export function ProjectTree({
             </div>
             
             {/* Teams */}
-            {project.isExpanded && (
+            {isProjectExpanded && (
               <div className="ml-7 space-y-1">
                 {projectTeams.map(team => {
                   const teamAgents = agents.filter(a => a.teamId === team.id);
                   const isTeamActive = team.id === activeTeamId;
+                  const isTeamExpanded = expandedTeams.has(team.id);
                   
                   return (
                     <div key={team.id} className="space-y-1">
                       {/* Team Level */}
-                      <div 
-                        className={`flex items-center justify-between px-3 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ${
-                          isTeamActive 
-                            ? 'hatchin-bg-card hatchin-border border' 
-                            : 'hover:bg-hatchin-border hover:border-transparent'
-                        }`}
-                        onClick={() => {
-                          onSelectTeam(team.id);
-                          onSelectAgent(null);
-                        }}
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div className="flex-shrink-0">
+                      <div className="flex items-center justify-between px-3 py-1.5 rounded-lg transition-all duration-200">
+                        <div 
+                          className={`flex items-center gap-2 min-w-0 flex-1 cursor-pointer ${
+                            isTeamActive 
+                              ? 'hatchin-bg-card hatchin-border border rounded-lg p-1' 
+                              : 'hover:bg-hatchin-border hover:border-transparent rounded-lg p-1'
+                          }`}
+                          onClick={() => onSelectTeam(team.id)}
+                        >
+                          <div 
+                            className="flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (teamAgents.length > 0) {
+                                onToggleTeamExpanded(team.id);
+                              }
+                            }}
+                          >
                             {teamAgents.length > 0 && (
-                              team.isExpanded ? (
-                                <ChevronDown className="w-3 h-3 hatchin-text-muted" />
+                              isTeamExpanded ? (
+                                <ChevronDown className="w-3 h-3 hatchin-text-muted hover:hatchin-text cursor-pointer" />
                               ) : (
-                                <ChevronRight className="w-3 h-3 hatchin-text-muted" />
+                                <ChevronRight className="w-3 h-3 hatchin-text-muted hover:hatchin-text cursor-pointer" />
                               )
                             )}
                           </div>
@@ -120,7 +140,7 @@ export function ProjectTree({
                       </div>
                       
                       {/* Agents */}
-                      {team.isExpanded && (
+                      {isTeamExpanded && (
                         <div className="ml-7 space-y-0.5">
                           {teamAgents.map(agent => {
                             const isAgentActive = agent.id === activeAgentId;
@@ -139,7 +159,6 @@ export function ProjectTree({
                                 <span className="text-sm hatchin-text-muted truncate">
                                   {agent.name}
                                 </span>
-                                
                               </div>
                             );
                           })}

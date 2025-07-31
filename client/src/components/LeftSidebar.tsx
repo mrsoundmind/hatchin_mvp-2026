@@ -9,9 +9,13 @@ interface LeftSidebarProps {
   activeProjectId: string | null;
   activeTeamId: string | null;
   activeAgentId: string | null;
+  expandedProjects: Set<string>;
+  expandedTeams: Set<string>;
   onSelectProject: (projectId: string) => void;
   onSelectTeam: (teamId: string | null) => void;
   onSelectAgent: (agentId: string | null) => void;
+  onToggleProjectExpanded: (projectId: string) => void;
+  onToggleTeamExpanded: (teamId: string) => void;
 }
 
 export function LeftSidebar({
@@ -21,9 +25,13 @@ export function LeftSidebar({
   activeProjectId,
   activeTeamId,
   activeAgentId,
+  expandedProjects,
+  expandedTeams,
   onSelectProject,
   onSelectTeam,
   onSelectAgent,
+  onToggleProjectExpanded,
+  onToggleTeamExpanded,
 }: LeftSidebarProps) {
   return (
     <aside className="w-80 hatchin-bg-panel rounded-2xl p-4 overflow-y-auto pl-[20px] pr-[20px]">
@@ -64,9 +72,13 @@ export function LeftSidebar({
           activeProjectId={activeProjectId}
           activeTeamId={activeTeamId}
           activeAgentId={activeAgentId}
+          expandedProjects={expandedProjects}
+          expandedTeams={expandedTeams}
           onSelectProject={onSelectProject}
           onSelectTeam={onSelectTeam}
           onSelectAgent={onSelectAgent}
+          onToggleProjectExpanded={onToggleProjectExpanded}
+          onToggleTeamExpanded={onToggleTeamExpanded}
         />
       </div>
     </aside>
