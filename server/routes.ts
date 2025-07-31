@@ -31,6 +31,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(validatedData);
+      
+      // If this is an "idea" project, automatically set up Maya agent and brain
+      if (req.body.projectType === 'idea') {
+        await storage.initializeIdeaProject(project.id);
+      }
+      
       res.status(201).json(project);
     } catch (error) {
       if (error instanceof z.ZodError) {

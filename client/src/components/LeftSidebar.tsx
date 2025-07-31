@@ -32,6 +32,7 @@ interface LeftSidebarProps {
   onToggleTeamExpanded: (teamId: string) => void;
   onCreateProject?: (name: string, description?: string) => void;
   onCreateProjectFromTemplate?: (pack: StarterPack, name: string, description?: string) => void;
+  onCreateIdeaProject?: (name: string, description?: string) => void;
 }
 
 export function LeftSidebar({
@@ -50,6 +51,7 @@ export function LeftSidebar({
   onToggleTeamExpanded,
   onCreateProject,
   onCreateProjectFromTemplate,
+  onCreateIdeaProject,
 }: LeftSidebarProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -151,6 +153,9 @@ export function LeftSidebar({
     try {
       if (selectedTemplate && onCreateProjectFromTemplate) {
         await onCreateProjectFromTemplate(selectedTemplate, name, description);
+      } else if (selectedTemplate === null && onCreateIdeaProject) {
+        // This is the "Start with an idea" flow
+        await onCreateIdeaProject(name, description);
       } else if (onCreateProject) {
         await onCreateProject(name, description);
       }

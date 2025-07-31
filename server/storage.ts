@@ -29,6 +29,9 @@ export interface IStorage {
   createAgent(agent: InsertAgent): Promise<Agent>;
   updateAgent(id: string, updates: Partial<Agent>): Promise<Agent | undefined>;
   deleteAgent(id: string): Promise<boolean>;
+  
+  // Special initialization for idea projects
+  initializeIdeaProject(projectId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -61,6 +64,7 @@ export class MemStorage implements IStorage {
       coreDirection: {},
       executionRules: null,
       teamCulture: null,
+      brain: {},
     };
     this.projects.set(saasProject.id, saasProject);
 
@@ -92,6 +96,8 @@ export class MemStorage implements IStorage {
       color: "orange",
       teamId: designTeam.id,
       projectId: saasProject.id,
+      personality: {},
+      isSpecialAgent: false,
     };
     this.agents.set(productDesigner.id, productDesigner);
 
@@ -102,6 +108,8 @@ export class MemStorage implements IStorage {
       color: "blue",
       teamId: designTeam.id,
       projectId: saasProject.id,
+      personality: {},
+      isSpecialAgent: false,
     };
     this.agents.set(uiEngineer.id, uiEngineer);
 
@@ -113,6 +121,8 @@ export class MemStorage implements IStorage {
       color: "green",
       teamId: productTeam.id,
       projectId: saasProject.id,
+      personality: {},
+      isSpecialAgent: false,
     };
     this.agents.set(productManager.id, productManager);
 
@@ -123,6 +133,8 @@ export class MemStorage implements IStorage {
       color: "blue",
       teamId: productTeam.id,
       projectId: saasProject.id,
+      personality: {},
+      isSpecialAgent: false,
     };
     this.agents.set(backendDev.id, backendDev);
 
@@ -133,6 +145,8 @@ export class MemStorage implements IStorage {
       color: "orange",
       teamId: productTeam.id,
       projectId: saasProject.id,
+      personality: {},
+      isSpecialAgent: false,
     };
     this.agents.set(qaLead.id, qaLead);
 
@@ -150,6 +164,7 @@ export class MemStorage implements IStorage {
         coreDirection: {},
         executionRules: null,
         teamCulture: null,
+        brain: {},
       },
       {
         id: "influencer-brand",
@@ -163,6 +178,7 @@ export class MemStorage implements IStorage {
         coreDirection: {},
         executionRules: null,
         teamCulture: null,
+        brain: {},
       },
       {
         id: "consulting-firm",
@@ -176,6 +192,7 @@ export class MemStorage implements IStorage {
         coreDirection: {},
         executionRules: null,
         teamCulture: null,
+        brain: {},
       },
       {
         id: "tech-incubator",
@@ -189,6 +206,7 @@ export class MemStorage implements IStorage {
         coreDirection: {},
         executionRules: null,
         teamCulture: null,
+        brain: {},
       },
     ];
 
@@ -234,9 +252,10 @@ export class MemStorage implements IStorage {
       isExpanded: insertProject.isExpanded ?? true,
       progress: insertProject.progress || 0,
       timeSpent: insertProject.timeSpent || "0h 0m",
-      coreDirection: insertProject.coreDirection || null,
+      coreDirection: insertProject.coreDirection || {},
       executionRules: insertProject.executionRules || null,
       teamCulture: insertProject.teamCulture || null,
+      brain: insertProject.brain || {},
     };
     this.projects.set(id, project);
     return project;
@@ -315,6 +334,8 @@ export class MemStorage implements IStorage {
       ...insertAgent, 
       id,
       color: insertAgent.color || "blue",
+      personality: insertAgent.personality || {},
+      isSpecialAgent: insertAgent.isSpecialAgent || false,
     };
     this.agents.set(id, agent);
     return agent;
@@ -331,6 +352,55 @@ export class MemStorage implements IStorage {
 
   async deleteAgent(id: string): Promise<boolean> {
     return this.agents.delete(id);
+  }
+
+  async initializeIdeaProject(projectId: string): Promise<void> {
+    // Create "Core Team" for the project
+    const coreTeam: Team = {
+      id: randomUUID(),
+      name: "Core Team",
+      emoji: "⭐",
+      projectId: projectId,
+      isExpanded: true,
+    };
+    this.teams.set(coreTeam.id, coreTeam);
+
+    // Create Maya agent
+    const mayaAgent: Agent = {
+      id: randomUUID(),
+      name: "Maya",
+      role: "AI Idea Partner",
+      color: "purple",
+      teamId: coreTeam.id,
+      projectId: projectId,
+      personality: {
+        traits: ["Creative", "Analytical", "Encouraging"],
+        communicationStyle: "Friendly and insightful, helps turn ideas into actionable plans",
+        expertise: ["Idea Development", "Strategic Thinking", "Project Planning"],
+        welcomeMessage: "Hi! I'm Maya, your AI idea partner. I'm here to help you explore, develop, and turn your idea into something amazing. What's on your mind?"
+      },
+      isSpecialAgent: true,
+    };
+    this.agents.set(mayaAgent.id, mayaAgent);
+
+    // Initialize project brain with Idea Development document
+    const project = this.projects.get(projectId);
+    if (project) {
+      const updatedProject = {
+        ...project,
+        brain: {
+          documents: [{
+            id: randomUUID(),
+            title: "Idea Development",
+            content: "This is where we'll capture and develop your core idea. Maya will help you refine your concept, identify key features, and create a roadmap for success.",
+            type: "idea-development" as const,
+            createdAt: new Date().toISOString()
+          }],
+          sharedMemory: "Project initialized for idea development with Maya as the AI partner."
+        }
+      };
+      this.projects.set(projectId, updatedProject);
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { CenterPanel } from "@/components/CenterPanel";
 import { RightSidebar } from "@/components/RightSidebar";
+import { EggHatchingAnimation } from "@/components/EggHatchingAnimation";
 import type { Project, Team, Agent } from "@shared/schema";
 
 export default function Home() {
@@ -12,6 +13,11 @@ export default function Home() {
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set(["saas-startup"]));
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+  const [isEggHatching, setIsEggHatching] = useState(false);
+  const [ideaProjectData, setIdeaProjectData] = useState<{
+    name: string;
+    description?: string;
+  } | null>(null);
 
   const { data: projects = [], refetch: refetchProjects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -112,6 +118,63 @@ export default function Home() {
     }
   };
 
+  // Idea project creation handler
+  const handleCreateIdeaProject = async (name: string, description?: string) => {
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          description: description || `${name} project`,
+          emoji: '🚀',
+          color: 'purple',
+          projectType: 'idea' // This triggers Maya agent creation and brain initialization
+        }),
+      });
+
+      if (response.ok) {
+        const newProject = await response.json();
+        console.log('Idea project created successfully:', newProject);
+        
+        // Store project data for the egg hatching animation
+        setIdeaProjectData({ name, description });
+        
+        // Start the egg hatching animation
+        setIsEggHatching(true);
+        
+        // Trigger data refresh
+        refetchProjects();
+        
+        return newProject;
+      } else {
+        console.error('Failed to create idea project');
+      }
+    } catch (error) {
+      console.error('Error creating idea project:', error);
+    }
+  };
+
+  // Handle egg hatching completion
+  const handleEggHatchingComplete = async () => {
+    setIsEggHatching(false);
+    setIdeaProjectData(null);
+    
+    // Find the Maya agent for the newly created project
+    const mayaAgent = agents.find(agent => 
+      agent.isSpecialAgent && 
+      agent.name === "Maya" &&
+      ideaProjectData
+    );
+    
+    if (mayaAgent) {
+      // Navigate to Maya chat
+      window.location.href = `/maya/${mayaAgent.projectId}`;
+    }
+  };
+
   const handleCreateProjectFromTemplate = async (pack: any, name: string, description?: string) => {
     try {
       const response = await fetch('/api/projects', {
@@ -189,6 +252,7 @@ export default function Home() {
           onToggleTeamExpanded={toggleTeamExpanded}
           onCreateProject={handleCreateProject}
           onCreateProjectFromTemplate={handleCreateProjectFromTemplate}
+          onCreateIdeaProject={handleCreateIdeaProject}
         />
         
         <CenterPanel
@@ -203,6 +267,14 @@ export default function Home() {
           activeProject={activeProject}
         />
       </div>
+      
+      {/* Egg Hatching Animation */}
+      {isEggHatching && ideaProjectData && (
+        <EggHatchingAnimation
+          projectName={ideaProjectData.name}
+          onComplete={handleEggHatchingComplete}
+        />
+      )}
     </div>
   );
 }

@@ -17,6 +17,16 @@ export const projects = pgTable("projects", {
     whyMatters?: string;
     whoFor?: string;
   }>().default({}),
+  brain: jsonb("brain").$type<{
+    documents?: Array<{
+      id: string;
+      title: string;
+      content: string;
+      type: 'idea-development' | 'project-plan' | 'meeting-notes' | 'research';
+      createdAt: string;
+    }>;
+    sharedMemory?: string;
+  }>().default({}),
   executionRules: text("execution_rules"),
   teamCulture: text("team_culture"),
 });
@@ -36,6 +46,13 @@ export const agents = pgTable("agents", {
   color: text("color").notNull().default("blue"),
   teamId: varchar("team_id").references(() => teams.id).notNull(),
   projectId: varchar("project_id").references(() => projects.id).notNull(),
+  personality: jsonb("personality").$type<{
+    traits?: string[];
+    communicationStyle?: string;
+    expertise?: string[];
+    welcomeMessage?: string;
+  }>().default({}),
+  isSpecialAgent: boolean("is_special_agent").notNull().default(false),
 });
 
 export const users = pgTable("users", {
