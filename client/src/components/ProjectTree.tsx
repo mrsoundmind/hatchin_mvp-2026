@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, MoreHorizontal, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, MoreHorizontal, FileText, Users } from "lucide-react";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface ProjectTreeProps {
@@ -51,7 +51,6 @@ export function ProjectTree({
   };
   const getAgentColorClass = (color: string) => {
     switch (color) {
-      case 'orange':
       case 'amber':
         return 'bg-[#FFB547]';
       case 'blue':
@@ -60,6 +59,8 @@ export function ProjectTree({
         return 'bg-[#47DB9A]';
       case 'purple':
         return 'bg-[#9F7BFF]';
+      case 'red':
+        return 'bg-[#FF4E6A]';
       default:
         return 'bg-[#6C82FF]';
     }
@@ -166,8 +167,8 @@ export function ProjectTree({
                               )
                             )}
                           </div>
+                          <Users className={`w-4 h-4 mr-2 ${getProjectIconColor(projects.find(p => p.id === team.projectId)?.color || 'blue')}`} />
                           <span className="text-sm hatchin-text truncate">
-                            <span className="mr-2">{team.emoji}</span>
                             {highlightMatch(team.name, searchQuery)}
                           </span>
                           <span className="text-xs hatchin-text-muted flex-shrink-0">
@@ -191,7 +192,7 @@ export function ProjectTree({
                                 }`}
                                 onClick={() => onSelectAgent(agent.id)}
                               >
-                                <div className={`w-6 h-6 rounded-full flex-shrink-0 ${getAgentColorClass(agent.color)} flex items-center justify-center`}>
+                                <div className={`w-5 h-5 rounded-full flex-shrink-0 ${getAgentColorClass(projects.find(p => p.id === agent.projectId)?.color || 'blue')} flex items-center justify-center`}>
                                   <span className="text-xs font-semibold text-white">
                                     {getAgentInitials(agent.name)}
                                   </span>
