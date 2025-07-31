@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AppHeader } from "@/components/AppHeader";
+
 import { LeftSidebar } from "@/components/LeftSidebar";
 import { CenterPanel } from "@/components/CenterPanel";
 import { RightSidebar } from "@/components/RightSidebar";
@@ -46,9 +46,7 @@ export default function Home() {
 
   return (
     <div className="hatchin-bg-dark min-h-screen overflow-hidden">
-      <AppHeader />
-      
-      <div className="h-[calc(100vh-4rem)] p-2.5 flex gap-3">
+      <div className="h-screen p-2.5 flex gap-3">
         <LeftSidebar
           projects={projects}
           teams={teams}
