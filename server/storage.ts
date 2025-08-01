@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent, type Conversation, type InsertConversation, type Message, type InsertMessage, type TypingIndicator, type InsertTypingIndicator } from "@shared/schema";
+import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent, type Conversation, type InsertConversation, type Message, type InsertMessage, type MessageReaction, type InsertMessageReaction, type TypingIndicator, type InsertTypingIndicator } from "@shared/schema";
 import { starterPacksByCategory, allHatchTemplates } from "@shared/templates";
 import { randomUUID } from "crypto";
 
@@ -43,6 +43,10 @@ export interface IStorage {
   getMessagesByConversation(conversationId: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   setTypingIndicator(conversationId: string, agentId: string, isTyping: boolean, estimatedDuration?: number): Promise<void>;
+  
+  // Message reaction methods for AI training
+  addMessageReaction(reaction: InsertMessageReaction): Promise<MessageReaction>;
+  getMessageReactions(messageId: string): Promise<MessageReaction[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -52,6 +56,7 @@ export class MemStorage implements IStorage {
   private agents: Map<string, Agent>;
   private conversations: Map<string, Conversation>;
   private messages: Map<string, Message>;
+  private messageReactions: Map<string, MessageReaction>;
   private typingIndicators: Map<string, TypingIndicator>;
 
   constructor() {
@@ -61,6 +66,7 @@ export class MemStorage implements IStorage {
     this.agents = new Map();
     this.conversations = new Map();
     this.messages = new Map();
+    this.messageReactions = new Map();
     this.typingIndicators = new Map();
     
     // Initialize with sample data matching the prototype
@@ -607,6 +613,31 @@ export class MemStorage implements IStorage {
     } else {
       this.typingIndicators.delete(indicatorKey);
     }
+  }
+
+  // A1.2 & A1.3: Message reaction methods for AI training
+  async addMessageReaction(reaction: InsertMessageReaction): Promise<MessageReaction> {
+    const newReaction: MessageReaction = {
+      id: randomUUID(),
+      ...reaction,
+      createdAt: new Date()
+    };
+    
+    // Store reaction - use unique key to allow one reaction per user per message
+    const key = `${reaction.messageId}-${reaction.userId}`;
+    this.messageReactions.set(key, newReaction);
+    
+    return newReaction;
+  }
+
+  async getMessageReactions(messageId: string): Promise<MessageReaction[]> {
+    const reactions: MessageReaction[] = [];
+    for (const [key, reaction] of this.messageReactions) {
+      if (reaction.messageId === messageId) {
+        reactions.push(reaction);
+      }
+    }
+    return reactions;
   }
 }
 

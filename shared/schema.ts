@@ -93,6 +93,22 @@ export const messages = pgTable("messages", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Message Reactions Table for AI Training
+export const messageReactions = pgTable("message_reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").references(() => messages.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  reactionType: text("reaction_type").notNull().$type<"thumbs_up" | "thumbs_down">(),
+  agentId: varchar("agent_id").references(() => agents.id), // which agent the feedback is about
+  feedbackData: jsonb("feedback_data").$type<{
+    responseQuality?: number; // 1-5 scale
+    helpfulness?: number; // 1-5 scale
+    accuracy?: number; // 1-5 scale
+    notes?: string;
+  }>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const conversationMemory = pgTable("conversation_memory", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   conversationId: varchar("conversation_id").references(() => conversations.id).notNull(),
@@ -143,6 +159,11 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   updatedAt: true,
 });
 
+export const insertMessageReactionSchema = createInsertSchema(messageReactions).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertConversationMemorySchema = createInsertSchema(conversationMemory).omit({
   id: true,
   createdAt: true,
@@ -170,6 +191,8 @@ export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+export type InsertMessageReaction = z.infer<typeof insertMessageReactionSchema>;
+export type MessageReaction = typeof messageReactions.$inferSelect;
 export type InsertConversationMemory = z.infer<typeof insertConversationMemorySchema>;
 export type ConversationMemory = typeof conversationMemory.$inferSelect;
 export type InsertTypingIndicator = z.infer<typeof insertTypingIndicatorSchema>;

@@ -192,6 +192,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // A1.2 & A1.3: Message reactions for AI training
+  app.post('/api/messages/:messageId/reactions', async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const reactionData = req.body;
+      
+      // Validate reaction data
+      if (!reactionData.reactionType || !['thumbs_up', 'thumbs_down'].includes(reactionData.reactionType)) {
+        return res.status(400).json({ error: 'Invalid reaction type' });
+      }
+
+      // For now, use a default user ID (in production, get from session)
+      const userId = 'user'; 
+      
+      const reaction = await storage.addMessageReaction({
+        messageId,
+        userId,
+        reactionType: reactionData.reactionType,
+        agentId: reactionData.agentId,
+        feedbackData: reactionData.feedbackData || {}
+      });
+
+      res.json(reaction);
+    } catch (error) {
+      console.error('Error adding message reaction:', error);
+      res.status(500).json({ error: 'Failed to add reaction' });
+    }
+  });
+
+  // Get reactions for a message
+  app.get('/api/messages/:messageId/reactions', async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const reactions = await storage.getMessageReactions(messageId);
+      res.json(reactions);
+    } catch (error) {
+      console.error('Error fetching message reactions:', error);
+      res.status(500).json({ error: 'Failed to fetch reactions' });
+    }
+  });
+
   // Simple feedback endpoint (for user thumbs up/down)
   app.post("/api/training/feedback", async (req, res) => {
     try {
@@ -432,9 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: response.content,
         messageType: 'agent',
         metadata: {
-          confidence: response.confidence,
-          reasoning: response.reasoning,
-          role: respondingAgent.role
+          responseTime: Date.now() - startTime,
+          personality: respondingAgent.personality?.communicationStyle || 'professional'
         }
       });
 

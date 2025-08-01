@@ -2,6 +2,10 @@ import { Send } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import type { Project, Team, Agent } from "@shared/schema";
 import { useWebSocket, getWebSocketUrl, getConnectionStatusConfig } from '@/lib/websocket';
+import { MessageBubble } from './MessageBubble';
+import { MessageSkeleton } from './MessageSkeleton';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 type ChatMode = 'project' | 'team' | 'agent';
 
@@ -706,6 +710,36 @@ export function CenterPanel({
 
   // === END TASK 2.3 ===
 
+  // A1.1 & A1.4: Handle message reactions for AI training
+  const reactionMutation = useMutation({
+    mutationFn: async ({ messageId, reactionType, agentId }: {
+      messageId: string;
+      reactionType: 'thumbs_up' | 'thumbs_down';
+      agentId?: string;
+    }) => {
+      return await apiRequest(`/api/messages/${messageId}/reactions`, {
+        method: 'POST',
+        body: {
+          reactionType,
+          agentId,
+          feedbackData: {
+            responseQuality: reactionType === 'thumbs_up' ? 5 : 2,
+            helpfulness: reactionType === 'thumbs_up' ? 5 : 2
+          }
+        }
+      });
+    }
+  });
+
+  const handleMessageReaction = (messageId: string, reactionType: 'thumbs_up' | 'thumbs_down') => {
+    // Find the message to get agent ID for training
+    const conversationMessages = currentChatContext ? allMessages[currentChatContext.conversationId] || [] : [];
+    const message = conversationMessages.find(m => m.id === messageId);
+    const agentId = message?.messageType === 'agent' ? message.senderId : undefined;
+    
+    reactionMutation.mutate({ messageId, reactionType, agentId });
+  };
+
   const handleActionClick = (action: string) => {
     console.log('Action triggered:', action);
     
@@ -926,90 +960,35 @@ export function CenterPanel({
                 </div>
               )}
               
-              {getCurrentMessages().map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.messageType === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  {/* Message Bubble */}
-                  <div className="flex items-start gap-3 max-w-[85%]">
-                    {/* Colleague Avatar */}
-                    {message.messageType === 'agent' && (
-                      <div className="w-8 h-8 rounded-full bg-hatchin-text-muted flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-xs font-medium text-white">
-                          {message.senderName.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="flex flex-col">
-                      {/* Colleague Name */}
-                      {message.messageType === 'agent' && (
-                        <span className="text-sm font-medium hatchin-text mb-1">
-                          {message.senderName}
-                        </span>
-                      )}
-                      
-                      {/* Message Content */}
-                      <div className={`${
-                        message.messageType === 'user' 
-                          ? 'hatchin-bg-blue text-white' 
-                          : 'bg-hatchin-colleague hatchin-text border hatchin-border'
-                      } rounded-2xl px-4 py-3 shadow-sm`}>
-                        
-                        {/* Message Content */}
-                        <div className="text-sm leading-relaxed">
-                          {message.content}
-                        </div>
-                        
-                        {/* Message Metadata */}
-                        <div className={`flex items-center gap-2 mt-2 text-xs ${
-                          message.messageType === 'user' 
-                            ? 'text-white/70' 
-                            : 'text-hatchin-text-muted'
-                        }`}>
-                          {/* Timestamp */}
-                          <span>
-                            {new Date(message.timestamp).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
-                          
-                          {/* Message Status (for user messages) */}
-                          {message.messageType === 'user' && (
-                            <>
-                              <span>•</span>
-                              <span className={`${
-                                message.status === 'sent' || message.status === 'delivered' 
-                                  ? 'text-white/90' 
-                                  : message.status === 'failed' 
-                                  ? 'text-red-300' 
-                                  : 'text-white/50'
-                              }`}>
-                                {message.status === 'sending' && 'Sending...'}
-                                {message.status === 'sent' && 'Sent'}
-                                {message.status === 'delivered' && 'Delivered'}
-                                {message.status === 'failed' && 'Failed'}
-                              </span>
-                            </>
-                          )}
-                          
-                          {/* Message Scope (for user messages) */}
-                          {message.messageType === 'user' && message.metadata?.routing?.scope && (
-                            <>
-                              <span>•</span>
-                              <span className="text-white/70 text-xs">
-                                {message.metadata.routing.scope}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {/* A3.1 & A3.2: Enhanced Message History with reactions and grouping */}
+              {getCurrentMessages().map((message, index) => {
+                // A3.2: Message grouping logic
+                const messages = getCurrentMessages();
+                const isGrouped = index > 0 && 
+                  messages[index - 1].messageType === message.messageType &&
+                  messages[index - 1].senderId === message.senderId &&
+                  (new Date(message.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime()) < 300000; // 5 minutes
+
+                return (
+                  <MessageBubble
+                    key={message.id}
+                    message={{
+                      id: message.id,
+                      content: message.content,
+                      senderId: message.senderId,
+                      senderName: message.senderName,
+                      messageType: message.messageType,
+                      timestamp: message.timestamp,
+                      metadata: {
+                        agentRole: message.metadata?.role
+                      }
+                    }}
+                    isGrouped={isGrouped}
+                    showReactions={message.messageType === 'agent'}
+                    onReaction={handleMessageReaction}
+                  />
+                );
+              })}
               
               {/* Typing Indicators - at bottom of messages */}
               {typingColleagues.length > 0 && (
