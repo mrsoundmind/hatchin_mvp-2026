@@ -97,8 +97,7 @@ Integration of comprehensive chat system into existing EnhancedMultiAgentChat co
 
 **Subtask 2.2.3: Enhanced Header Layout**
 - [ ] Improve spacing and visual hierarchy in header
-- [ ] Add participant status indicators (online/offline dots)
-- [ ] Better alignment of avatars and action buttons
+- [ ] Better alignment of icons and action buttons
 - [ ] Responsive header layout for different screen sizes
 
 **Subtask 2.2.4: Context-Specific Empty States**
