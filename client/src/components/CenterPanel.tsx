@@ -235,6 +235,105 @@ export function CenterPanel({
 
   // === END SUBTASK 2.1.4 ===
 
+  // === TASK 2.3: Message Context Filtering & Participant Logic ===
+  
+  // Filter messages by current chat context
+  const getFilteredMessages = () => {
+    if (!currentChatContext) return [];
+    
+    // For now, return empty array - will be populated with actual messages from storage
+    // Messages will be filtered by conversationId which already encodes the context
+    const conversationId = currentChatContext.conversationId;
+    
+    // Future implementation will fetch from storage:
+    // return messages.filter(msg => msg.conversationId === conversationId);
+    return [];
+  };
+
+  // Message routing logic - determines who receives the message
+  const getMessageRecipients = () => {
+    if (!currentChatContext) return {
+      type: 'unknown',
+      recipients: [],
+      scope: '',
+      conversationId: ''
+    };
+    
+    const participants = getCurrentChatParticipants();
+    
+    switch (currentChatContext.mode) {
+      case 'project':
+        // Project chat: message goes to all teams and agents under project
+        return {
+          type: 'project',
+          recipients: participants,
+          scope: `All ${activeProjectTeams.length} teams in ${activeProject?.name}`,
+          conversationId: currentChatContext.conversationId
+        };
+      
+      case 'team':
+        // Team chat: message goes to all agents under specific team
+        const activeTeam = activeProjectTeams.find(t => t.id === activeTeamId);
+        return {
+          type: 'team',
+          recipients: participants,
+          scope: `${activeTeam?.name} team (${participants.length} colleagues)`,
+          conversationId: currentChatContext.conversationId
+        };
+      
+      case 'agent':
+        // Agent chat: message goes to specific agent only
+        const activeAgent = activeProjectAgents.find(a => a.id === activeAgentId);
+        return {
+          type: 'agent',
+          recipients: participants,
+          scope: `1-on-1 with ${activeAgent?.name}`,
+          conversationId: currentChatContext.conversationId
+        };
+      
+      default:
+        return { type: 'unknown', recipients: [], scope: '', conversationId: '' };
+    }
+  };
+
+  // Conversation switching logic when context changes
+  const handleConversationSwitch = (newContext: typeof currentChatContext) => {
+    if (!newContext) return;
+    
+    // Save current conversation state if needed
+    const currentMessages = getFilteredMessages();
+    
+    // Switch to new conversation
+    const newConversationId = newContext.conversationId;
+    const recipients = getMessageRecipients();
+    
+    console.log('Conversation switched:', {
+      from: currentChatContext?.conversationId,
+      to: newConversationId,
+      mode: newContext.mode,
+      recipients: recipients.scope,
+      sharedMemory: chatMemoryContext?.memoryAccess?.scope
+    });
+    
+    // Future: Load messages for new conversation from storage
+    // loadMessagesForConversation(newConversationId);
+  };
+
+  // Memory context validation for message routing
+  const validateMessageContext = () => {
+    const recipients = getMessageRecipients();
+    const memoryContext = getCurrentMemoryContext();
+    
+    return {
+      canSendMessage: recipients.recipients.length > 0 && (memoryContext?.memoryAccess?.canWrite ?? false),
+      messageScope: recipients.scope,
+      memoryScope: memoryContext?.memoryAccess?.scope ?? 'unknown',
+      participantCount: recipients.recipients.length
+    };
+  };
+
+  // === END TASK 2.3 ===
+
   const handleActionClick = (action: string) => {
     console.log('Action triggered:', action);
     
@@ -251,17 +350,45 @@ export function CenterPanel({
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const input = form.elements.namedItem('message') as HTMLInputElement;
+    
     if (input.value.trim()) {
-      // Message with memory context - removed validation check that was blocking messages
-      console.log('Message sent with memory context:', {
-        message: input.value,
-        conversationId: currentChatContext?.conversationId,
-        mode: currentChatContext?.mode,
-        participants: getCurrentChatParticipants().map(p => p.name),
-        sharedMemory: chatMemoryContext?.sharedContext,
-        memoryScope: chatMemoryContext?.memoryAccess?.scope
-      });
-      input.value = '';
+      const messageContext = validateMessageContext();
+      const recipients = getMessageRecipients();
+      
+      if (messageContext.canSendMessage) {
+        // Enhanced message with full context and routing
+        console.log('Message sent with full context:', {
+          message: input.value,
+          conversationId: currentChatContext?.conversationId,
+          mode: currentChatContext?.mode,
+          routing: {
+            type: recipients.type,
+            scope: recipients.scope,
+            participantCount: recipients.recipients.length,
+            recipients: recipients.recipients.map((p: any) => p.name)
+          },
+          memory: {
+            projectMemory: chatMemoryContext?.sharedContext,
+            memoryScope: chatMemoryContext?.memoryAccess?.scope,
+            canWrite: chatMemoryContext?.memoryAccess?.canWrite
+          },
+          timestamp: new Date().toISOString()
+        });
+        
+        // Future: Save message to storage with proper routing
+        // await saveMessage({
+        //   content: input.value,
+        //   conversationId: recipients.conversationId,
+        //   senderId: 'user',
+        //   recipients: recipients.recipients.map(p => p.id),
+        //   messageType: recipients.type,
+        //   projectMemoryId: chatMemoryContext?.projectId
+        // });
+        
+        input.value = '';
+      } else {
+        console.warn('Cannot send message - invalid context or permissions');
+      }
     }
   };
 
