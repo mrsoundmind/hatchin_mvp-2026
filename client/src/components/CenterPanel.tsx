@@ -301,8 +301,14 @@ export function CenterPanel({
               {activeProjectTeams.map(team => {
                 const teamAgentCount = activeProjectAgents.filter(a => a.teamId === team.id).length;
                 return (
-                  <span key={team.id} className="hatchin-text text-[12px]">
-                    {team.emoji} {team.name} ({teamAgentCount})
+                  <span key={team.id} className="hatchin-text text-[12px] flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    {team.name} ({teamAgentCount})
                   </span>
                 );
               })}
@@ -311,8 +317,12 @@ export function CenterPanel({
           {currentChatContext?.mode === 'team' && (
             <div className="flex items-center gap-4">
               {contextDisplay.participants.map(agent => (
-                <span key={agent.id} className="hatchin-text text-[12px]">
-                  🤖 {agent.name}
+                <span key={agent.id} className="hatchin-text text-[12px] flex items-center gap-1">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  {agent.name}
                 </span>
               ))}
             </div>

@@ -88,9 +88,9 @@ Integration of comprehensive chat system into existing EnhancedMultiAgentChat co
 **Subtask 2.2.1: Clean Chat Header Titles** ✅ COMPLETED
 - [x] Remove emojis from main project/team/agent titles in chat header
 - [x] Keep header titles clean with text-only names
-- [x] BUT keep team icons (🎨, 💻, etc.) when showing teams under project
-- [x] BUT keep agent icons (🤖) when showing agents under team
-- [x] Only remove emojis from the main conversation title
+- [x] Replace team emojis with people icon (group icon) in participant sections
+- [x] Replace agent emojis with person icon (single user icon) in participant sections
+- [x] All header sections now use clean icons instead of emojis
 
 **Subtask 2.2.2: Participant Avatar Display** 
 - [ ] Replace text participant names with actual avatar circles
