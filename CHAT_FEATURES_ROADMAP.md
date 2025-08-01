@@ -39,9 +39,8 @@ Focus: Complex team dynamics and collaboration
 
 ### **A3: Enhanced Message Display**
 - [ ] **A3.1**: Improve message timestamp formatting (relative time)
-- [ ] **A3.2**: Add read/delivered status indicators
-- [ ] **A3.3**: Better message grouping for same sender
-- [ ] **A3.4**: Message loading states and skeletons
+- [ ] **A3.2**: Better message grouping for same sender
+- [ ] **A3.3**: Message loading states and skeletons
 
 ---
 
