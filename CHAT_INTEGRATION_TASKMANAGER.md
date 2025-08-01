@@ -92,11 +92,8 @@ Integration of comprehensive chat system into existing EnhancedMultiAgentChat co
 - [x] Replace agent emojis with person icon (single user icon) in participant sections
 - [x] All header sections now use clean icons instead of emojis
 
-**Subtask 2.2.2: Participant Avatar Display** 
-- [ ] Replace text participant names with actual avatar circles
-- [ ] Add participant profile pictures/initials in header
-- [ ] Show participant count badge (e.g., "5 colleagues")
-- [ ] Add hover tooltips with participant details
+**Subtask 2.2.2: Participant Avatar Display** ❌ SKIPPED
+- [x] User decided not needed - skip avatar circles and tooltips
 
 **Subtask 2.2.3: Enhanced Header Layout**
 - [ ] Improve spacing and visual hierarchy in header
