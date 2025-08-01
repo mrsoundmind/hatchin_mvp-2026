@@ -216,8 +216,18 @@ export function CenterPanel({
     }));
   };
 
+  // Track response timers to prevent duplicates
+  const responseTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
   // Simulate colleague responses
   const simulateColleagueResponse = async (userMessage: string, conversationId: string) => {
+    // Clear any existing timer for this conversation
+    const existingTimer = responseTimers.current.get(conversationId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      responseTimers.current.delete(conversationId);
+    }
+
     // Only respond if this is still the active conversation
     if (!currentChatContext || currentChatContext.conversationId !== conversationId) return;
     
@@ -230,42 +240,49 @@ export function CenterPanel({
     // Show typing indicator
     setTypingColleagues([pm.name]);
     
-    // Simulate typing delay
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 2000));
-    
-    // Check again if still active conversation
-    if (!currentChatContext || currentChatContext.conversationId !== conversationId) {
-      setTypingColleagues([]);
-      return;
-    }
-    
-    // Remove typing indicator
-    setTypingColleagues([]);
-    
-    // Generate PM response based on context and user message
-    const pmResponse = {
-      id: `agent-${Date.now()}`,
-      content: generatePMResponse(userMessage, currentChatContext?.mode || 'project'),
-      senderId: pm.id,
-      senderName: pm.name,
-      messageType: 'agent' as const,
-      timestamp: new Date().toISOString(),
-      conversationId,
-      status: 'delivered' as const,
-      metadata: { role: pm.role }
-    };
-
-    // Add PM response only if still in same conversation
-    if (currentChatContext && currentChatContext.conversationId === conversationId) {
-      addMessageToConversation(conversationId, pmResponse);
+    // Create response timer
+    const timer = setTimeout(async () => {
+      // Check again if still active conversation
+      if (!currentChatContext || currentChatContext.conversationId !== conversationId) {
+        setTypingColleagues([]);
+        responseTimers.current.delete(conversationId);
+        return;
+      }
       
-      // Send through WebSocket for real-time sync
-      sendWebSocketMessage({
-        type: 'agent_response',
+      // Remove typing indicator
+      setTypingColleagues([]);
+      
+      // Generate PM response based on context and user message
+      const pmResponse = {
+        id: `agent-${Date.now()}`,
+        content: generatePMResponse(userMessage, currentChatContext?.mode || 'project'),
+        senderId: pm.id,
+        senderName: pm.name,
+        messageType: 'agent' as const,
+        timestamp: new Date().toISOString(),
         conversationId,
-        message: pmResponse
-      });
-    }
+        status: 'delivered' as const,
+        metadata: { role: pm.role }
+      };
+
+      // Add PM response only if still in same conversation
+      if (currentChatContext && currentChatContext.conversationId === conversationId) {
+        addMessageToConversation(conversationId, pmResponse);
+        
+        // Send through WebSocket for real-time sync
+        sendWebSocketMessage({
+          type: 'agent_response',
+          conversationId,
+          message: pmResponse
+        });
+      }
+      
+      // Clean up timer
+      responseTimers.current.delete(conversationId);
+    }, 1500 + Math.random() * 2000);
+
+    // Store timer
+    responseTimers.current.set(conversationId, timer);
   };
 
   // Generate PM responses based on context and message content
@@ -870,82 +887,78 @@ export function CenterPanel({
                   className={`flex ${message.messageType === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {/* Message Bubble */}
-                  <div className="flex items-start gap-3 max-w-[85%]">
-                    {/* Colleague Avatar */}
-                    {message.messageType === 'agent' && (
+                  {message.messageType === 'user' ? (
+                    /* User Message - Right Aligned */
+                    <div className="max-w-[70%] hatchin-bg-blue text-white rounded-2xl px-4 py-3 shadow-sm">
+                      <div className="text-sm leading-relaxed">
+                        {message.content}
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mt-2 text-xs text-white/70">
+                        <span>
+                          {new Date(message.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                        
+                        {message.status && (
+                          <>
+                            <span>•</span>
+                            <span className={`${
+                              message.status === 'sent' || message.status === 'delivered' 
+                                ? 'text-white/90' 
+                                : message.status === 'failed' 
+                                ? 'text-red-300' 
+                                : 'text-white/50'
+                            }`}>
+                              {message.status === 'sending' && 'Sending...'}
+                              {message.status === 'sent' && 'Sent'}
+                              {message.status === 'delivered' && 'Delivered'}
+                              {message.status === 'failed' && 'Failed'}
+                            </span>
+                          </>
+                        )}
+                        
+                        {message.metadata?.routing?.scope && (
+                          <>
+                            <span>•</span>
+                            <span className="text-white/70 text-xs">
+                              {message.metadata.routing.scope}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Colleague Message - Left Aligned with Avatar */
+                    <div className="flex items-start gap-3 max-w-[85%]">
                       <div className="w-8 h-8 rounded-full bg-hatchin-text-muted flex items-center justify-center flex-shrink-0 mt-1">
                         <span className="text-xs font-medium text-white">
                           {message.senderName.charAt(0)}
                         </span>
                       </div>
-                    )}
-                    
-                    <div className="flex flex-col">
-                      {/* Colleague Name */}
-                      {message.messageType === 'agent' && (
-                        <span className="text-sm font-medium hatchin-text mb-1">
-                          {message.senderName}
-                        </span>
-                      )}
                       
-                      {/* Message Content */}
-                      <div className={`${
-                        message.messageType === 'user' 
-                          ? 'hatchin-bg-blue text-white' 
-                          : 'bg-hatchin-colleague hatchin-text border hatchin-border'
-                      } rounded-2xl px-4 py-3 shadow-sm`}>
-                        
-                        {/* Message Content */}
-                        <div className="text-sm leading-relaxed">
-                          {message.content}
-                        </div>
-                        
-                        {/* Message Metadata */}
-                        <div className={`flex items-center gap-2 mt-2 text-xs ${
-                          message.messageType === 'user' 
-                            ? 'text-white/70' 
-                            : 'text-hatchin-text-muted'
-                        }`}>
-                          {/* Timestamp */}
-                          <span>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium hatchin-text">
+                            {message.senderName}
+                          </span>
+                          <span className="text-xs hatchin-text-muted">
                             {new Date(message.timestamp).toLocaleTimeString([], { 
                               hour: '2-digit', 
                               minute: '2-digit' 
                             })}
                           </span>
-                          
-                          {/* Message Status (for user messages) */}
-                          {message.messageType === 'user' && (
-                            <>
-                              <span>•</span>
-                              <span className={`${
-                                message.status === 'sent' || message.status === 'delivered' 
-                                  ? 'text-white/90' 
-                                  : message.status === 'failed' 
-                                  ? 'text-red-300' 
-                                  : 'text-white/50'
-                              }`}>
-                                {message.status === 'sending' && 'Sending...'}
-                                {message.status === 'sent' && 'Sent'}
-                                {message.status === 'delivered' && 'Delivered'}
-                                {message.status === 'failed' && 'Failed'}
-                              </span>
-                            </>
-                          )}
-                          
-                          {/* Message Scope (for user messages) */}
-                          {message.messageType === 'user' && message.metadata?.routing?.scope && (
-                            <>
-                              <span>•</span>
-                              <span className="text-white/70 text-xs">
-                                {message.metadata.routing.scope}
-                              </span>
-                            </>
-                          )}
+                        </div>
+                        
+                        <div className="hatchin-text text-sm leading-relaxed">
+                          {message.content}
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+
                 </div>
               ))}
               
@@ -957,13 +970,19 @@ export function CenterPanel({
                       <span className="text-xs font-medium text-white">P</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium hatchin-text mb-1">
-                        {typingColleagues[0]}
-                      </span>
-                      <div className="bg-hatchin-colleague hatchin-text border hatchin-border rounded-2xl px-4 py-3 shadow-sm">
-                        <div className="text-sm hatchin-text-muted italic">
-                          {typingColleagues[0]} is typing...
-                        </div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium hatchin-text">
+                          {typingColleagues[0]}
+                        </span>
+                        <span className="text-xs hatchin-text-muted">
+                          {new Date().toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
+                      <div className="hatchin-text-muted text-sm italic">
+                        {typingColleagues[0]} is typing...
                       </div>
                     </div>
                   </div>
