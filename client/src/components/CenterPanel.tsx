@@ -452,14 +452,6 @@ export function CenterPanel({
             <h1 className="font-semibold hatchin-text text-lg">
               {contextDisplay.title}
             </h1>
-            
-            {/* Connection Status Indicator */}
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${connectionConfig.bgColor}`}></div>
-              <span className={`text-xs font-medium ${connectionConfig.color}`}>
-                {connectionConfig.text}
-              </span>
-            </div>
           </div>
           
           <button className="hatchin-bg-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2">
