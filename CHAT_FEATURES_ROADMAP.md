@@ -3,7 +3,7 @@
 ## 📋 Task Groups Overview
 
 ### **Group A: Core Message Experience** 
-**Priority**: High | **Estimated Time**: 4-6 hours | **Dependencies**: None
+**Priority**: High | **Estimated Time**: 3-4 hours | **Dependencies**: None
 Focus: Making basic messaging feel polished and professional
 
 ### **Group B: AI Intelligence & Streaming**
@@ -34,10 +34,8 @@ Focus: Complex team dynamics and collaboration
 - [ ] **A1.4**: Add hover states and smooth animations
 
 ### **A2: Message Actions**
-- [ ] **A2.1**: Add message editing functionality for user messages
-- [ ] **A2.2**: Implement message deletion with confirmation
-- [ ] **A2.3**: Add copy message to clipboard feature
-- [ ] **A2.4**: Create message context menu
+- [ ] **A2.1**: Add copy message to clipboard feature
+- [ ] **A2.2**: Create message context menu (for copy and reactions)
 
 ### **A3: Enhanced Message Display**
 - [ ] **A3.1**: Improve message timestamp formatting (relative time)
@@ -112,7 +110,6 @@ Focus: Complex team dynamics and collaboration
 - [ ] **D1.1**: Conversation persistence across sessions
 - [ ] **D1.2**: Chat history pagination and lazy loading
 - [ ] **D1.3**: Conversation archiving system
-- [ ] **D1.4**: Chat deletion with data cleanup
 
 ### **D2: Export & Backup**
 - [ ] **D2.1**: Export conversations to PDF/text
