@@ -430,7 +430,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!respondingAgent) return;
 
-      // Show typing indicator
+      // Show typing indicator and track response time
+      const startTime = Date.now();
       broadcastToConversation(conversationId, {
         type: 'typing_started',
         agentId: respondingAgent.id,
@@ -443,7 +444,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conversationHistory = recentMessages.slice(-5).map(msg => ({
         role: msg.messageType === 'user' ? 'user' as const : 'assistant' as const,
         content: msg.content,
-        timestamp: msg.createdAt?.toISOString() || new Date().toISOString()
+        timestamp: msg.createdAt?.toISOString() || new Date().toISOString(),
+        senderId: msg.userId || msg.agentId || 'unknown',
+        messageType: msg.messageType === 'system' ? 'agent' as const : msg.messageType as 'user' | 'agent'
       }));
 
       // Generate intelligent response using OpenAI
@@ -455,7 +458,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           projectName: project.name,
           teamName,
           agentRole: respondingAgent.role,
-          conversationHistory
+          conversationHistory,
+          userId: userMessage.userId || 'user' // Pass userId for behavior analysis
         }
       );
 

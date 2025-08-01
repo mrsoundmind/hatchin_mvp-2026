@@ -2,6 +2,7 @@ import { OpenAI } from 'openai';
 import { roleProfiles } from './roleProfiles.js';
 import { trainingSystem } from './trainingSystem.js';
 import { executeColleagueLogic } from './colleagueLogic.js';
+import { UserBehaviorAnalyzer, type UserBehaviorProfile, type MessageAnalysis } from './userBehaviorAnalyzer.js';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -17,7 +18,10 @@ interface ChatContext {
     role: 'user' | 'assistant';
     content: string;
     timestamp: string;
+    senderId?: string;
+    messageType?: 'user' | 'agent';
   }>;
+  userId?: string;
 }
 
 interface ColleagueResponse {
@@ -32,6 +36,31 @@ export async function generateIntelligentResponse(
   context: ChatContext
 ): Promise<ColleagueResponse> {
   try {
+    // B2.1: Analyze user behavior from conversation history
+    let userBehaviorProfile: UserBehaviorProfile | null = null;
+    let messageAnalysis: MessageAnalysis | null = null;
+    
+    if (context.userId && context.conversationHistory.length > 0) {
+      // Convert conversation history to the format expected by analyzer
+      const messagesForAnalysis = context.conversationHistory.map(msg => ({
+        content: msg.content,
+        messageType: (msg.role === 'user' ? 'user' : 'agent') as 'user' | 'agent',
+        timestamp: msg.timestamp,
+        senderId: msg.senderId || (msg.role === 'user' ? context.userId! : agentRole)
+      }));
+      
+      // Add current message to analysis
+      messagesForAnalysis.push({
+        content: userMessage,
+        messageType: 'user',
+        timestamp: new Date().toISOString(),
+        senderId: context.userId
+      });
+      
+      userBehaviorProfile = UserBehaviorAnalyzer.analyzeUserBehavior(messagesForAnalysis, context.userId);
+      messageAnalysis = UserBehaviorAnalyzer.analyzeMessage(userMessage, new Date().toISOString());
+    }
+
     // Execute custom logic for this colleague type
     const logicResult = executeColleagueLogic(agentRole, userMessage);
     
@@ -48,7 +77,9 @@ export async function generateIntelligentResponse(
         teamName: context.teamName,
         recentMessages: context.conversationHistory.slice(-5) // Last 5 messages for context
       },
-      roleProfile
+      roleProfile,
+      userBehaviorProfile,
+      messageAnalysis
     });
 
     // Enhance prompt with training data
@@ -107,8 +138,10 @@ function createPromptTemplate(params: {
   userMessage: string;
   context: any;
   roleProfile: any;
+  userBehaviorProfile?: UserBehaviorProfile | null;
+  messageAnalysis?: MessageAnalysis | null;
 }): { systemPrompt: string; userPrompt: string } {
-  const { role, userMessage, context, roleProfile } = params;
+  const { role, userMessage, context, roleProfile, userBehaviorProfile, messageAnalysis } = params;
   
   const systemPrompt = `You are ${roleProfile.name}, a ${role} working on the "${context.projectName}" project.
 
@@ -129,7 +162,16 @@ INSTRUCTIONS:
 - Keep responses concise (2-3 sentences max)
 - Be helpful and actionable based on your role
 - Match the conversational tone
-- Don't mention you're an AI - you're a colleague`;
+- Don't mention you're an AI - you're a colleague
+
+${userBehaviorProfile && messageAnalysis ? `
+USER COMMUNICATION PROFILE (Confidence: ${(userBehaviorProfile.confidence * 100).toFixed(0)}%):
+- Style: ${userBehaviorProfile.communicationStyle} (${userBehaviorProfile.responsePreference} responses preferred)
+- Decision Making: ${userBehaviorProfile.decisionMaking}
+- Current Message: ${messageAnalysis.emotionalTone} tone, ${messageAnalysis.urgencyLevel > 0.5 ? 'urgent' : 'normal'} priority
+- Adapt your response accordingly: ${UserBehaviorAnalyzer.getResponseAdaptation(userBehaviorProfile, messageAnalysis).tone}
+- Response Length: ${UserBehaviorAnalyzer.getResponseAdaptation(userBehaviorProfile, messageAnalysis).length}
+` : ''}`;
 
   const userPrompt = `User message: "${userMessage}"
 
