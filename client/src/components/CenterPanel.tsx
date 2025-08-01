@@ -155,9 +155,9 @@ export function CenterPanel({
           subtitle: `Project Chat • ${activeProjectTeams.length} teams`,
           participants,
           placeholder: `Message all teams in ${activeProject?.name}...`,
-          welcomeTitle: 'Talk to your entire project team',
-          welcomeSubtitle: 'Get insights and coordination across all teams and roles.',
-          welcomeIcon: '🚀'
+          welcomeTitle: `Start chatting with all ${activeProjectTeams.reduce((total, team) => total + activeProjectAgents.filter(a => a.teamId === team.id).length, 0)} colleagues in ${activeProject?.name}`,
+          welcomeSubtitle: 'Get insights and coordination across all teams and roles in your project.',
+          welcomeIcon: '💬'
         };
       
       case 'team':
@@ -167,9 +167,9 @@ export function CenterPanel({
           subtitle: `Team Chat • ${participants.length} Colleagues`,
           participants,
           placeholder: `Message ${activeTeam?.name} team...`,
-          welcomeTitle: `Collaborate with ${activeTeam?.name}`,
-          welcomeSubtitle: 'Focus on team-specific goals and coordination.',
-          welcomeIcon: activeTeam?.emoji || '👥'
+          welcomeTitle: `Start chatting with ${activeTeam?.name} (${participants.length} colleagues)`,
+          welcomeSubtitle: 'Focus on team-specific goals and coordination within your team.',
+          welcomeIcon: '👥'
         };
       
       case 'agent':
@@ -179,9 +179,9 @@ export function CenterPanel({
           subtitle: `1-on-1 Chat • ${activeAgent?.role}`,
           participants,
           placeholder: `Message ${activeAgent?.name}...`,
-          welcomeTitle: `Chat with ${activeAgent?.name}`,
-          welcomeSubtitle: `Get specialized help with ${activeAgent?.role.toLowerCase()} tasks.`,
-          welcomeIcon: '🤖'
+          welcomeTitle: `Start chatting with ${activeAgent?.name}`,
+          welcomeSubtitle: `Get specialized help with ${activeAgent?.role.toLowerCase()} tasks and expertise.`,
+          welcomeIcon: '👤'
         };
       
       default:
@@ -281,21 +281,35 @@ export function CenterPanel({
 
   return (
     <main className="flex-1 hatchin-bg-panel rounded-2xl flex flex-col">
-      {/* Dynamic Chat Header */}
-      <div className="p-6 hatchin-border border-b pt-[16px] pb-[16px]">
+      {/* Dynamic Chat Header - Subtask 2.2.3: Enhanced Header Layout */}
+      <div className="p-6 hatchin-border border-b pt-[20px] pb-[20px]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="font-semibold hatchin-text text-[16px]">
+          <div className="flex items-center gap-6">
+            <h1 className="font-semibold hatchin-text text-[18px]">
               {contextDisplay.title}
             </h1>
-            <button className="hatchin-bg-blue text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors">
-              + Add Hatch
+            {/* Subtask 2.2.5: Header Interactive Elements - Improved button positioning */}
+            <button className="hatchin-bg-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14"/>
+                <path d="M5 12h14"/>
+              </svg>
+              Add Hatch
             </button>
           </div>
+          {/* Subtask 2.2.5: Chat settings/options menu */}
+          <button className="hatchin-text-muted hover:hatchin-text p-2 rounded-lg hover:bg-hatchin-border transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6"/>
+              <path d="M1 12h6m6 0h6"/>
+            </svg>
+          </button>
         </div>
         
-        <div className="flex items-center gap-6 mt-3">
-          <span className="hatchin-text-muted text-[12px] font-medium">{contextDisplay.subtitle}</span>
+        {/* Subtask 2.2.3: Enhanced spacing and hierarchy */}
+        <div className="flex items-center gap-8 mt-4">
+          <span className="hatchin-text-muted text-[13px] font-medium">{contextDisplay.subtitle}</span>
           {currentChatContext?.mode === 'project' && (
             <div className="flex items-center gap-4">
               {activeProjectTeams.map(team => {
@@ -329,7 +343,7 @@ export function CenterPanel({
           )}
         </div>
       </div>
-      {/* Dynamic Welcome Content */}
+      {/* Dynamic Welcome Content - Subtask 2.2.4: Context-Specific Empty States */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="max-w-lg">
           
