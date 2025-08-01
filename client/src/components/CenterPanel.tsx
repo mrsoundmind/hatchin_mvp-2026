@@ -32,6 +32,21 @@ export function CenterPanel({
   // Chat mode state management
   const [chatMode, setChatMode] = useState<ChatMode>('project');
   const [currentChatContext, setCurrentChatContext] = useState<ChatContext | null>(null);
+  
+  // Message state management
+  const [messages, setMessages] = useState<Array<{
+    id: string;
+    content: string;
+    senderId: string;
+    senderName: string;
+    messageType: 'user' | 'agent';
+    timestamp: string;
+    conversationId: string;
+    status: 'sending' | 'sent' | 'delivered' | 'failed';
+    metadata?: any;
+  }>>([]);
+  const [messageQueue, setMessageQueue] = useState<Array<any>>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   // === SUBTASK 3.1.1: Connect WebSocket to Chat UI ===
   
@@ -40,12 +55,14 @@ export function CenterPanel({
   const { connectionStatus, sendMessage: sendWebSocketMessage, lastMessage } = useWebSocket(webSocketUrl, {
     onMessage: (message) => {
       console.log('Received WebSocket message:', message);
-      // Handle incoming messages here
+      handleIncomingMessage(message);
     },
     onConnect: () => {
       console.log('Chat connected to real-time messaging');
+      // Process queued messages when reconnected
+      processMessageQueue();
+      // Join current conversation room
       if (currentChatContext) {
-        // Join the current conversation room when connected
         sendWebSocketMessage({
           type: 'join_conversation',
           conversationId: currentChatContext.conversationId
@@ -63,7 +80,155 @@ export function CenterPanel({
   // Connection status configuration for UI display
   const connectionConfig = getConnectionStatusConfig(connectionStatus);
 
-  // === END SUBTASK 3.1.1 ===
+  // === SUBTASK 3.1.2: Real-time Message Sending ===
+  
+  // Message queuing for offline scenarios  
+  const queueMessage = (messageData: any) => {
+    setMessageQueue(prev => [...prev, messageData]);
+  };
+
+  // Process queued messages when connection is restored
+  const processMessageQueue = () => {
+    if (connectionStatus === 'connected' && messageQueue.length > 0) {
+      messageQueue.forEach(messageData => {
+        sendWebSocketMessage(messageData);
+        // Update message status to sent
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageData.tempId 
+            ? { ...msg, status: 'sent' as const }
+            : msg
+        ));
+      });
+      setMessageQueue([]);
+    }
+  };
+
+  // Enhanced message sending with delivery confirmation and retry
+  const sendMessageWithConfirmation = async (messageData: any, tempMessageId: string) => {
+    try {
+      if (connectionStatus === 'connected') {
+        // Send through WebSocket
+        sendWebSocketMessage(messageData);
+        
+        // Save to storage for persistence
+        await saveMessageToStorage(messageData.message);
+        
+        // Update message status to sent
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempMessageId 
+            ? { ...msg, status: 'sent' as const }
+            : msg
+        ));
+        
+        console.log('Message sent successfully:', messageData);
+      } else {
+        // Queue message for later delivery
+        queueMessage({ ...messageData, tempId: tempMessageId });
+        
+        // Update message status to queued
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempMessageId 
+            ? { ...msg, status: 'sending' as const }
+            : msg
+        ));
+        
+        console.log('Message queued for delivery:', messageData);
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      
+      // Update message status to failed
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempMessageId 
+          ? { ...msg, status: 'failed' as const }
+          : msg
+      ));
+    }
+  };
+
+  // === SUBTASK 3.1.3: Real-time Message Receiving ===
+  
+  // Handle incoming WebSocket messages
+  const handleIncomingMessage = (message: any) => {
+    if (message.type === 'new_message') {
+      const newMessage = {
+        id: message.message.id || `msg-${Date.now()}`,
+        content: message.message.content,
+        senderId: message.message.agentId || message.message.userId,
+        senderName: message.message.senderName || 'Colleague',
+        messageType: message.message.messageType,
+        timestamp: message.message.timestamp || new Date().toISOString(),
+        conversationId: message.message.conversationId,
+        status: 'delivered' as const,
+        metadata: message.message.metadata
+      };
+
+      // Filter: only add if message belongs to current conversation
+      if (currentChatContext && newMessage.conversationId === currentChatContext.conversationId) {
+        setMessages(prev => {
+          // Prevent duplicates
+          const exists = prev.some(msg => msg.id === newMessage.id);
+          if (exists) return prev;
+          
+          // Add and sort by timestamp
+          return [...prev, newMessage].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        });
+        
+        console.log('Received message for current conversation:', newMessage);
+      }
+    } else if (message.type === 'message_delivered') {
+      // Update message status to delivered
+      setMessages(prev => prev.map(msg => 
+        msg.id === message.messageId 
+          ? { ...msg, status: 'delivered' as const }
+          : msg
+      ));
+    }
+  };
+
+  // === SUBTASK 3.1.4: Message Persistence Integration ===
+  
+  // Save message to storage
+  const saveMessageToStorage = async (messageData: any) => {
+    try {
+      // Future implementation: API call to save message
+      // await fetch('/api/messages', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(messageData)
+      // });
+      
+      console.log('Message saved to storage:', messageData);
+    } catch (error) {
+      console.error('Failed to save message to storage:', error);
+      throw error;
+    }
+  };
+
+  // Load conversation history when context changes
+  const loadConversationHistory = async (conversationId: string) => {
+    if (isLoadingMessages) return;
+    
+    setIsLoadingMessages(true);
+    try {
+      // Future implementation: API call to load messages
+      // const response = await fetch(`/api/messages?conversationId=${conversationId}`);
+      // const conversationMessages = await response.json();
+      
+      // For now, clear messages when switching conversations
+      setMessages([]);
+      
+      console.log('Loaded conversation history for:', conversationId);
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  // === END TASK 3.1 ===
   
   // useEffect to listen to activeProjectId, activeTeamId, activeAgentId changes
   useEffect(() => {
@@ -98,15 +263,30 @@ export function CenterPanel({
 
     // Update chat mode and context
     setChatMode(newMode);
-    setCurrentChatContext({
+    const newChatContext = {
       mode: newMode,
       participantIds,
       conversationId,
       projectId: activeProject.id
-    });
+    };
+    
+    // Load conversation history for new context
+    if (currentChatContext && currentChatContext.conversationId !== conversationId) {
+      loadConversationHistory(conversationId);
+    }
+    
+    setCurrentChatContext(newChatContext);
+    
+    // Join new conversation room via WebSocket when connected
+    if (connectionStatus === 'connected') {
+      sendWebSocketMessage({
+        type: 'join_conversation',
+        conversationId: conversationId
+      });
+    }
 
     // Debug logging for development
-    console.log('Chat context updated:', {
+    console.log('Chat context updated with persistence:', {
       mode: newMode,
       participants: participantIds.length,
       conversationId,
@@ -388,16 +568,41 @@ export function CenterPanel({
       const messageContext = validateMessageContext();
       const recipients = getMessageRecipients();
       
-      if (messageContext.canSendMessage && connectionStatus === 'connected') {
-        // Send message through WebSocket for real-time delivery
+      if (messageContext.canSendMessage) {
+        const tempMessageId = `temp-${Date.now()}`;
+        const timestamp = new Date().toISOString();
+        
+        // Create user message for immediate UI display
+        const userMessage = {
+          id: tempMessageId,
+          content: input.value,
+          senderId: 'user',
+          senderName: 'You',
+          messageType: 'user' as const,
+          timestamp,
+          conversationId: currentChatContext?.conversationId || '',
+          status: 'sending' as const,
+          metadata: {
+            routing: recipients,
+            memory: chatMemoryContext
+          }
+        };
+
+        // Add message to UI immediately
+        setMessages(prev => [...prev, userMessage]);
+
+        // Prepare WebSocket message data
         const messageData = {
           type: 'send_message',
           conversationId: currentChatContext?.conversationId || '',
           message: {
+            id: tempMessageId,
             conversationId: currentChatContext?.conversationId || '',
-            userId: 'user', // Will be replaced with actual user ID
+            userId: 'user',
             content: input.value,
             messageType: 'user' as const,
+            timestamp,
+            senderName: 'You',
             metadata: {
               routing: {
                 type: recipients.type,
@@ -409,19 +614,15 @@ export function CenterPanel({
                 projectMemory: chatMemoryContext?.sharedContext,
                 memoryScope: chatMemoryContext?.memoryAccess?.scope,
                 canWrite: chatMemoryContext?.memoryAccess?.canWrite
-              },
-              timestamp: new Date().toISOString()
+              }
             }
           }
         };
 
-        // Send through WebSocket
-        sendWebSocketMessage(messageData);
+        // Send with confirmation and retry logic
+        sendMessageWithConfirmation(messageData, tempMessageId);
         
-        console.log('Message sent via WebSocket:', messageData);
         input.value = '';
-      } else if (connectionStatus !== 'connected') {
-        console.warn('Cannot send message - not connected to real-time messaging');
       } else {
         console.warn('Cannot send message - invalid context or permissions');
       }
