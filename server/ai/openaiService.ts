@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import { roleProfiles } from './roleProfiles.js';
+import { trainingSystem } from './trainingSystem.js';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -34,7 +35,7 @@ export async function generateIntelligentResponse(
     const roleProfile = roleProfiles[agentRole] || roleProfiles['Product Manager'];
     
     // Create context-aware prompt using our template system
-    const prompt = createPromptTemplate({
+    const basePrompt = createPromptTemplate({
       role: agentRole,
       userMessage,
       context: {
@@ -46,17 +47,20 @@ export async function generateIntelligentResponse(
       roleProfile
     });
 
+    // Enhance prompt with training data
+    const enhancedPrompt = trainingSystem.generateEnhancedPrompt(agentRole, userMessage, basePrompt.systemPrompt);
+
     // Generate response using OpenAI
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
         {
           role: 'system',
-          content: prompt.systemPrompt
+          content: enhancedPrompt
         },
         {
           role: 'user', 
-          content: prompt.userPrompt
+          content: basePrompt.userPrompt
         }
       ],
       max_tokens: 300,

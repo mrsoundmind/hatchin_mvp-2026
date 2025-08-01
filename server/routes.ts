@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { insertProjectSchema, insertTeamSchema, insertAgentSchema, insertMessageSchema, insertConversationSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateIntelligentResponse } from "./ai/openaiService.js";
+import { trainingSystem } from "./ai/trainingSystem.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Projects
@@ -187,45 +188,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test endpoint for message storage validation
-  app.post("/api/test/chat-storage", async (req, res) => {
+  // AI Training API Endpoints
+  app.post("/api/training/feedback", async (req, res) => {
     try {
-      // Test conversation creation
-      const testConversation = await storage.createConversation({
-        projectId: "saas-startup",
-        teamId: null,
-        agentId: null,
-        type: "project",
-        title: "Test Project Chat"
+      const { messageId, conversationId, userMessage, agentResponse, agentRole, rating, feedback } = req.body;
+      
+      const trainingFeedback = trainingSystem.addFeedback({
+        messageId,
+        conversationId,
+        userMessage,
+        agentResponse,
+        agentRole,
+        rating,
+        feedback
       });
-
-      // Test message creation
-      const testMessage = await storage.createMessage({
-        conversationId: testConversation.id,
-        userId: null,
-        agentId: "product-designer",
-        content: "Hello! This is a test message from storage validation.",
-        messageType: "agent",
-        metadata: {
-          isStreaming: false,
-          personality: "friendly"
-        }
-      });
-
-      // Test message retrieval
-      const messages = await storage.getMessagesByConversation(testConversation.id);
-
-      res.json({
-        success: true,
-        testResults: {
-          conversationCreated: testConversation,
-          messageCreated: testMessage,
-          messagesRetrieved: messages,
-          messageCount: messages.length
-        }
-      });
+      
+      res.json({ success: true, feedback: trainingFeedback });
     } catch (error) {
-      res.status(500).json({ error: "Storage test failed", details: error });
+      res.status(500).json({ error: "Failed to record training feedback" });
+    }
+  });
+
+  app.post("/api/training/example", async (req, res) => {
+    try {
+      const { agentRole, userInput, idealResponse, category } = req.body;
+      
+      const customExample = trainingSystem.addCustomExample({
+        agentRole,
+        userInput,
+        idealResponse,
+        category
+      });
+      
+      res.json({ success: true, example: customExample });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add custom example" });
+    }
+  });
+
+  app.get("/api/training/stats", async (req, res) => {
+    try {
+      const stats = trainingSystem.getTrainingStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get training stats" });
+    }
+  });
+
+  app.get("/api/training/data/:agentRole", async (req, res) => {
+    try {
+      const trainingData = trainingSystem.getTrainingData(req.params.agentRole);
+      res.json(trainingData);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get training data" });
     }
   });
 
