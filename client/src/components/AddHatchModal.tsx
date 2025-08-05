@@ -410,7 +410,7 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
                 >
                   <User size={20} />
                   <div className="flex-1">
-                    <div className="font-medium">Individual Hatch</div>
+                    <div className="font-medium text-[14px]">Individual Hatch</div>
                     <div className="text-xs opacity-75">Single specialists</div>
                   </div>
                   <div className="text-xs bg-black/20 px-2 py-1 rounded-full">
