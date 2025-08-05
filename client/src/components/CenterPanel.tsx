@@ -279,6 +279,53 @@ export function CenterPanel({
       setIsStreaming(false);
       setStreamingMessageId(null);
       setStreamingContent('');
+      
+      // Add the completed message to conversation
+      if (message.message) {
+        const getActualAgentName = (agentId: string) => {
+          const agent = activeProjectAgents.find(a => a.id === agentId);
+          return agent ? agent.name : agentId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        };
+
+        const completedMessage = {
+          id: message.message.id,
+          content: message.message.content,
+          senderId: message.message.agentId,
+          senderName: getActualAgentName(message.message.agentId),
+          messageType: 'agent' as const,
+          timestamp: new Date().toISOString(),
+          conversationId: message.message.conversationId,
+          status: 'delivered' as const,
+          parentMessageId: undefined,
+          threadRootId: undefined,
+          threadDepth: 0,
+          metadata: {}
+        };
+
+        // Update existing message with final content instead of replacing
+        setAllMessages(prev => {
+          const conversationId = message.message.conversationId;
+          const messages = prev[conversationId] || [];
+          const messageIndex = messages.findIndex(msg => msg.id === message.messageId);
+          
+          if (messageIndex >= 0) {
+            // Update existing streaming message
+            const updatedMessages = [...messages];
+            updatedMessages[messageIndex] = {
+              ...updatedMessages[messageIndex],
+              content: message.message.content,
+              status: 'delivered' as const,
+              isStreaming: false
+            };
+            return { ...prev, [conversationId]: updatedMessages };
+          } else {
+            // Add new message if not found
+            return { ...prev, [conversationId]: [...messages, completedMessage] };
+          }
+        });
+        
+        console.log('Updated streaming message with final content:', message.message.conversationId);
+      }
     }
     else if (message.type === 'streaming_cancelled') {
       console.log('🛑 Streaming cancelled');
