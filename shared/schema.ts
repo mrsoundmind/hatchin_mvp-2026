@@ -89,7 +89,6 @@ export const messages = pgTable("messages", {
     personality?: string;
     mentions?: string[];
   }>().default({}),
-  reactions: jsonb("reactions").$type<{ [emoji: string]: string[] }>().default({}), // emoji -> array of user IDs
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -107,15 +106,6 @@ export const messageReactions = pgTable("message_reactions", {
     accuracy?: number; // 1-5 scale
     notes?: string;
   }>().default({}),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Emoji Reactions Table for Team Collaboration
-export const emojiReactions = pgTable("emoji_reactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  messageId: varchar("message_id").references(() => messages.id).notNull(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  emoji: text("emoji").notNull(), // Any emoji like 👍, 😄, ❤️, 🚀, etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -186,11 +176,6 @@ export const insertTypingIndicatorSchema = createInsertSchema(typingIndicators).
   updatedAt: true,
 });
 
-export const insertEmojiReactionSchema = createInsertSchema(emojiReactions).omit({
-  id: true,
-  createdAt: true,
-});
-
 // Type Exports
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
@@ -208,8 +193,6 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessageReaction = z.infer<typeof insertMessageReactionSchema>;
 export type MessageReaction = typeof messageReactions.$inferSelect;
-export type EmojiReaction = typeof emojiReactions.$inferSelect;
-export type InsertEmojiReaction = z.infer<typeof insertEmojiReactionSchema>;
 export type InsertConversationMemory = z.infer<typeof insertConversationMemorySchema>;
 export type ConversationMemory = typeof conversationMemory.$inferSelect;
 export type InsertTypingIndicator = z.infer<typeof insertTypingIndicatorSchema>;

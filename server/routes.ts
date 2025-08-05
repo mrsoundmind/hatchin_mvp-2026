@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertProjectSchema, insertTeamSchema, insertAgentSchema, insertMessageSchema, insertConversationSchema, insertEmojiReactionSchema } from "@shared/schema";
+import { insertProjectSchema, insertTeamSchema, insertAgentSchema, insertMessageSchema, insertConversationSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateIntelligentResponse } from "./ai/openaiService.js";
 import { trainingSystem } from "./ai/trainingSystem.js";
@@ -280,41 +280,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to get stats" });
-    }
-  });
-
-  // Emoji reaction routes (for team collaboration)
-  app.post('/api/messages/:messageId/emoji-reactions', async (req, res) => {
-    try {
-      const { messageId } = req.params;
-      const { emoji } = req.body;
-      
-      if (!emoji) {
-        return res.status(400).json({ error: 'Emoji is required' });
-      }
-      
-      const reactionData = {
-        messageId,
-        userId: 'user', // For now, hardcode to 'user' - in production this would come from auth
-        emoji
-      };
-      
-      const reaction = await storage.addEmojiReaction(reactionData);
-      res.status(201).json(reaction);
-    } catch (error) {
-      console.error('Error creating emoji reaction:', error);
-      res.status(500).json({ message: 'Failed to create emoji reaction' });
-    }
-  });
-
-  app.get('/api/messages/:messageId/emoji-reactions', async (req, res) => {
-    try {
-      const { messageId } = req.params;
-      const reactions = await storage.getEmojiReactions(messageId);
-      res.json(reactions);
-    } catch (error) {
-      console.error('Error fetching emoji reactions:', error);
-      res.status(500).json({ message: 'Failed to fetch emoji reactions' });
     }
   });
 

@@ -5,7 +5,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
-import { EmojiReactions } from '@/components/EmojiReactions';
 
 interface MessageBubbleProps {
   message: {
@@ -227,9 +226,6 @@ export function MessageBubble({
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Emoji Reactions - Show for all messages */}
-              <EmojiReactions messageId={message.id} />
             </div>
           </motion.div>
         </ContextMenuTrigger>
