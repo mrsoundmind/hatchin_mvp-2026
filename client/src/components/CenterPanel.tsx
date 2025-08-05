@@ -196,6 +196,10 @@ export function CenterPanel({
         timestamp: message.message.timestamp || new Date().toISOString(),
         conversationId: message.message.conversationId,
         status: 'delivered' as const,
+        // C1.3: Thread support for new messages
+        parentMessageId: message.message.parentMessageId || undefined,
+        threadRootId: message.message.threadRootId || undefined,
+        threadDepth: message.message.threadDepth || 0,
         metadata: message.message.metadata
       };
 
@@ -231,7 +235,11 @@ export function CenterPanel({
         timestamp: new Date().toISOString(),
         conversationId: currentChatContext?.conversationId || '',
         status: 'streaming' as const,
-        isStreaming: true
+        isStreaming: true,
+        // C1.3: Thread support for streaming messages
+        parentMessageId: message.parentMessageId || undefined,
+        threadRootId: message.threadRootId || undefined,
+        threadDepth: message.threadDepth || 0
       };
       
       addMessageToConversation(currentChatContext?.conversationId || '', streamingMessage);
@@ -295,9 +303,12 @@ export function CenterPanel({
 
   // C1.3: Thread navigation state
   const currentMessages = getCurrentMessages();
+  
   const threadNavigation = useThreadNavigation(currentMessages.map(msg => ({
     ...msg,
-    threadDepth: msg.threadDepth || 0
+    threadDepth: msg.threadDepth || 0,
+    parentMessageId: msg.parentMessageId || undefined,
+    threadRootId: msg.threadRootId || undefined
   })));
 
   // Add message to specific conversation
@@ -929,7 +940,7 @@ export function CenterPanel({
         const tempMessageId = `temp-${Date.now()}`;
         const timestamp = new Date().toISOString();
         
-        // Create user message for immediate UI display
+        // C1.3: Create user message with thread support
         const userMessage = {
           id: tempMessageId,
           content: input.value,
@@ -939,9 +950,24 @@ export function CenterPanel({
           timestamp,
           conversationId: currentChatContext?.conversationId || '',
           status: 'sending' as const,
+          // C1.3: Thread navigation fields
+          parentMessageId: replyingTo?.id || undefined,
+          threadRootId: replyingTo ? (
+            // Find the parent message to determine thread root
+            currentMessages.find(m => m.id === replyingTo.id)?.threadRootId || replyingTo.id
+          ) : undefined,
+          threadDepth: replyingTo ? (
+            // Calculate thread depth
+            (currentMessages.find(m => m.id === replyingTo.id)?.threadDepth || 0) + 1
+          ) : 0,
           metadata: {
             routing: recipients,
-            memory: chatMemoryContext
+            memory: chatMemoryContext,
+            replyTo: replyingTo ? {
+              id: replyingTo.id,
+              content: replyingTo.content,
+              senderName: replyingTo.senderName
+            } : undefined
           }
         };
 
@@ -950,7 +976,7 @@ export function CenterPanel({
 
         // Prepare WebSocket message data
         const messageData = {
-          type: 'send_message',
+          type: 'send_message_streaming',
           conversationId: currentChatContext?.conversationId || '',
           message: {
             id: tempMessageId,
@@ -960,6 +986,10 @@ export function CenterPanel({
             messageType: 'user' as const,
             timestamp,
             senderName: 'You',
+            // C1.3: Include thread data in WebSocket message
+            parentMessageId: userMessage.parentMessageId,
+            threadRootId: userMessage.threadRootId,
+            threadDepth: userMessage.threadDepth,
             metadata: {
               routing: {
                 type: recipients.type,
@@ -971,7 +1001,8 @@ export function CenterPanel({
                 projectMemory: chatMemoryContext?.sharedContext,
                 memoryScope: chatMemoryContext?.memoryAccess?.scope,
                 canWrite: chatMemoryContext?.memoryAccess?.canWrite
-              }
+              },
+              replyTo: userMessage.metadata.replyTo
             }
           }
         };
@@ -1131,42 +1162,119 @@ export function CenterPanel({
               )}
               
               {/* C1.3: Thread Navigation and Collapse - Enhanced Message History */}
-              {Array.from(threadNavigation.threadStructure.threads.values()).map((thread) => {
-                const isCollapsed = threadNavigation.isThreadCollapsed(thread.rootMessage.id);
-                
-                return (
-                  <ThreadContainer
-                    key={thread.rootMessage.id}
-                    rootMessage={thread.rootMessage}
-                    replies={thread.replies}
-                    isCollapsed={isCollapsed}
-                    onToggleCollapse={threadNavigation.toggleThreadCollapse}
-                    onReaction={handleMessageReaction}
-                    onReply={handleReplyToMessage}
-                    chatContext={{
-                      mode: currentChatContext?.mode || 'project',
-                      color: chatContextColor
-                    }}
-                  >
-                    {/* Root message */}
+              {currentMessages.length > 0 && threadNavigation.threadStructure.threads.size > 0 ? (
+                // Render threaded messages when threads exist
+                <>
+                  {Array.from(threadNavigation.threadStructure.threads.values()).map((thread) => {
+                    const isCollapsed = threadNavigation.isThreadCollapsed(thread.rootMessage.id);
+                    
+                    return (
+                      <div key={thread.rootMessage.id}>
+                        <ThreadContainer
+                          rootMessage={thread.rootMessage}
+                          replies={thread.replies}
+                          isCollapsed={isCollapsed}
+                          onToggleCollapse={threadNavigation.toggleThreadCollapse}
+                          onReaction={handleMessageReaction}
+                          onReply={handleReplyToMessage}
+                          chatContext={{
+                            mode: currentChatContext?.mode || 'project',
+                            color: chatContextColor
+                          }}
+                        >
+                          {/* Root message */}
+                          <MessageBubble
+                            message={{
+                              id: thread.rootMessage.id,
+                              content: thread.rootMessage.content,
+                              senderId: thread.rootMessage.senderId,
+                              senderName: thread.rootMessage.senderName,
+                              messageType: thread.rootMessage.messageType,
+                              timestamp: thread.rootMessage.timestamp,
+                              isStreaming: false,
+                              status: 'sent',
+                              metadata: {
+                                agentRole: thread.rootMessage.metadata?.agentRole,
+                                isStreaming: false,
+                                replyTo: thread.rootMessage.metadata?.replyTo
+                              }
+                            }}
+                            isGrouped={false}
+                            showReactions={thread.rootMessage.messageType === 'agent'}
+                            onReaction={handleMessageReaction}
+                            onReply={handleReplyToMessage}
+                            chatContext={{
+                              mode: currentChatContext?.mode || 'project',
+                              color: chatContextColor
+                            }}
+                          />
+                        </ThreadContainer>
+
+                        {/* Render thread replies when not collapsed */}
+                        {!isCollapsed && thread.replies.length > 0 && (
+                          <div className="ml-8 border-l-2 border-hatchin-border pl-4 space-y-2">
+                            {thread.replies.map((reply, index) => {
+                              const isGrouped = index > 0 && 
+                                thread.replies[index - 1].messageType === reply.messageType &&
+                                thread.replies[index - 1].senderId === reply.senderId &&
+                                (new Date(reply.timestamp).getTime() - new Date(thread.replies[index - 1].timestamp).getTime()) < 300000;
+
+                              return (
+                                <MessageBubble
+                                  key={reply.id}
+                                  message={{
+                                    id: reply.id,
+                                    content: reply.content,
+                                    senderId: reply.senderId,
+                                    senderName: reply.senderName,
+                                    messageType: reply.messageType,
+                                    timestamp: reply.timestamp,
+                                    isStreaming: false,
+                                    status: 'sent',
+                                    metadata: {
+                                      agentRole: reply.metadata?.agentRole,
+                                      isStreaming: false,
+                                      replyTo: reply.metadata?.replyTo
+                                    }
+                                  }}
+                                  isGrouped={isGrouped}
+                                  showReactions={reply.messageType === 'agent'}
+                                  onReaction={handleMessageReaction}
+                                  onReply={handleReplyToMessage}
+                                  chatContext={{
+                                    mode: currentChatContext?.mode || 'project',
+                                    color: chatContextColor
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Orphaned messages (messages without proper thread structure) */}
+                  {threadNavigation.threadStructure.orphanedMessages.map((message) => (
                     <MessageBubble
+                      key={message.id}
                       message={{
-                        id: thread.rootMessage.id,
-                        content: thread.rootMessage.content,
-                        senderId: thread.rootMessage.senderId,
-                        senderName: thread.rootMessage.senderName,
-                        messageType: thread.rootMessage.messageType,
-                        timestamp: thread.rootMessage.timestamp,
+                        id: message.id,
+                        content: message.content,
+                        senderId: message.senderId,
+                        senderName: message.senderName,
+                        messageType: message.messageType,
+                        timestamp: message.timestamp,
                         isStreaming: false,
                         status: 'sent',
                         metadata: {
-                          agentRole: thread.rootMessage.metadata?.agentRole,
+                          agentRole: message.metadata?.agentRole,
                           isStreaming: false,
-                          replyTo: thread.rootMessage.metadata?.replyTo
+                          replyTo: message.metadata?.replyTo
                         }
                       }}
                       isGrouped={false}
-                      showReactions={thread.rootMessage.messageType === 'agent'}
+                      showReactions={message.messageType === 'agent'}
                       onReaction={handleMessageReaction}
                       onReply={handleReplyToMessage}
                       chatContext={{
@@ -1174,86 +1282,46 @@ export function CenterPanel({
                         color: chatContextColor
                       }}
                     />
-                  </ThreadContainer>
-                );
-              })}
+                  ))}
+                </>
+              ) : (
+                // Fallback: Render messages normally when no thread structure exists
+                currentMessages.map((message, index) => {
+                  const isGrouped = index > 0 && 
+                    currentMessages[index - 1].messageType === message.messageType &&
+                    currentMessages[index - 1].senderId === message.senderId &&
+                    (new Date(message.timestamp).getTime() - new Date(currentMessages[index - 1].timestamp).getTime()) < 300000;
 
-              {/* Render thread replies when not collapsed */}
-              {Array.from(threadNavigation.threadStructure.threads.values()).map((thread) => {
-                const isCollapsed = threadNavigation.isThreadCollapsed(thread.rootMessage.id);
-                
-                if (isCollapsed || thread.replies.length === 0) return null;
-                
-                return (
-                  <div key={`replies-${thread.rootMessage.id}`} className="ml-8">
-                    {thread.replies.map((reply, index) => {
-                      const isGrouped = index > 0 && 
-                        thread.replies[index - 1].messageType === reply.messageType &&
-                        thread.replies[index - 1].senderId === reply.senderId &&
-                        (new Date(reply.timestamp).getTime() - new Date(thread.replies[index - 1].timestamp).getTime()) < 300000;
-
-                      return (
-                        <MessageBubble
-                          key={reply.id}
-                          message={{
-                            id: reply.id,
-                            content: reply.content,
-                            senderId: reply.senderId,
-                            senderName: reply.senderName,
-                            messageType: reply.messageType,
-                            timestamp: reply.timestamp,
-                            isStreaming: false,
-                            status: 'sent',
-                            metadata: {
-                              agentRole: reply.metadata?.agentRole,
-                              isStreaming: false,
-                              replyTo: reply.metadata?.replyTo
-                            }
-                          }}
-                          isGrouped={isGrouped}
-                          showReactions={reply.messageType === 'agent'}
-                          onReaction={handleMessageReaction}
-                          onReply={handleReplyToMessage}
-                          chatContext={{
-                            mode: currentChatContext?.mode || 'project',
-                            color: chatContextColor
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                );
-              })}
-
-              {/* Orphaned messages (messages without proper thread structure) */}
-              {threadNavigation.threadStructure.orphanedMessages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={{
-                    id: message.id,
-                    content: message.content,
-                    senderId: message.senderId,
-                    senderName: message.senderName,
-                    messageType: message.messageType,
-                    timestamp: message.timestamp,
-                    isStreaming: false,
-                    status: 'sent',
-                    metadata: {
-                      agentRole: message.metadata?.agentRole,
-                      isStreaming: false,
-                      replyTo: message.metadata?.replyTo
-                    }
-                  }}
-                  isGrouped={false}
-                  showReactions={message.messageType === 'agent'}
-                  onReaction={handleMessageReaction}
-                  onReply={handleReplyToMessage}
-                  chatContext={{
-                    mode: currentChatContext?.mode || 'project',
-                    color: chatContextColor
-                  }}
-                />
-              ))}
+                  return (
+                    <MessageBubble
+                      key={message.id}
+                      message={{
+                        id: message.id,
+                        content: message.content,
+                        senderId: message.senderId,
+                        senderName: message.senderName,
+                        messageType: message.messageType,
+                        timestamp: message.timestamp,
+                        isStreaming: message.isStreaming,
+                        status: message.status,
+                        metadata: {
+                          agentRole: message.metadata?.role || message.metadata?.agentRole,
+                          isStreaming: message.isStreaming,
+                          replyTo: message.metadata?.replyTo
+                        }
+                      }}
+                      isGrouped={isGrouped}
+                      showReactions={message.messageType === 'agent'}
+                      onReaction={handleMessageReaction}
+                      onReply={handleReplyToMessage}
+                      chatContext={{
+                        mode: currentChatContext?.mode || 'project',
+                        color: chatContextColor
+                      }}
+                    />
+                  );
+                })
+              )}
               
               {/* Typing Indicators - at bottom of messages */}
               {typingColleagues.length > 0 && (
