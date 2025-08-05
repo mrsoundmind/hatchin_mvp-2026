@@ -37,10 +37,22 @@ export interface IStorage {
   // Special initialization for starter pack projects
   initializeStarterPackProject(projectId: string, starterPackId: string): Promise<void>;
   
+  // D1.3: Conversation archiving and management
+  archiveConversation(conversationId: string): Promise<boolean>;
+  unarchiveConversation(conversationId: string): Promise<boolean>;
+  getArchivedConversations(projectId: string): Promise<Conversation[]>;
+  deleteConversation(conversationId: string): Promise<boolean>;
+  
   // Chat methods
   getConversationsByProject(projectId: string): Promise<Conversation[]>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
-  getMessagesByConversation(conversationId: string): Promise<Message[]>;
+  getMessagesByConversation(conversationId: string, options?: {
+    page?: number;
+    limit?: number;
+    before?: string;
+    after?: string;
+    messageType?: string;
+  }): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   setTypingIndicator(conversationId: string, agentId: string, isTyping: boolean, estimatedDuration?: number): Promise<void>;
   
@@ -597,11 +609,41 @@ export class MemStorage implements IStorage {
     return newConversation;
   }
 
-  async getMessagesByConversation(conversationId: string): Promise<Message[]> {
-    const messages = Array.from(this.messages.values()).filter(
-      msg => msg.conversationId === conversationId
-    );
-    return messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  // D1.2: Enhanced message loading with pagination and filtering
+  async getMessagesByConversation(conversationId: string, options?: {
+    page?: number;
+    limit?: number;
+    before?: string;
+    after?: string;
+    messageType?: string;
+  }): Promise<Message[]> {
+    let messages = Array.from(this.messages.values())
+      .filter(msg => msg.conversationId === conversationId);
+    
+    // Filter by message type if specified
+    if (options?.messageType) {
+      messages = messages.filter(msg => msg.messageType === options.messageType);
+    }
+    
+    // Filter by date range if specified
+    if (options?.before) {
+      messages = messages.filter(msg => new Date(msg.createdAt) < new Date(options.before!));
+    }
+    if (options?.after) {
+      messages = messages.filter(msg => new Date(msg.createdAt) > new Date(options.after!));
+    }
+    
+    // Sort by creation date (newest first for pagination)
+    messages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    // Apply pagination
+    if (options?.page && options?.limit) {
+      const startIndex = (options.page - 1) * options.limit;
+      messages = messages.slice(startIndex, startIndex + options.limit);
+    }
+    
+    // Return in chronological order (oldest first)
+    return messages.reverse();
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
@@ -795,6 +837,50 @@ export class MemStorage implements IStorage {
     }
     
     return contextParts.join('\n');
+  }
+
+  // D1.3: Conversation archiving and management
+  async archiveConversation(conversationId: string): Promise<boolean> {
+    const conversation = this.conversations.get(conversationId);
+    if (!conversation) return false;
+    
+    const updatedConversation = { ...conversation, isActive: false };
+    this.conversations.set(conversationId, updatedConversation);
+    return true;
+  }
+
+  async unarchiveConversation(conversationId: string): Promise<boolean> {
+    const conversation = this.conversations.get(conversationId);
+    if (!conversation) return false;
+    
+    const updatedConversation = { ...conversation, isActive: true };
+    this.conversations.set(conversationId, updatedConversation);
+    return true;
+  }
+
+  async getArchivedConversations(projectId: string): Promise<Conversation[]> {
+    return Array.from(this.conversations.values())
+      .filter(conv => conv.projectId === projectId && !conv.isActive);
+  }
+
+  async deleteConversation(conversationId: string): Promise<boolean> {
+    // Delete conversation
+    const conversationDeleted = this.conversations.delete(conversationId);
+    
+    // Delete associated messages
+    const messagesToDelete = Array.from(this.messages.keys())
+      .filter(key => this.messages.get(key)?.conversationId === conversationId);
+    messagesToDelete.forEach(key => this.messages.delete(key));
+    
+    // Delete associated memories
+    this.conversationMemories.delete(conversationId);
+    
+    // Delete typing indicators
+    const indicatorsToDelete = Array.from(this.typingIndicators.keys())
+      .filter(key => key.startsWith(`${conversationId}-`));
+    indicatorsToDelete.forEach(key => this.typingIndicators.delete(key));
+    
+    return conversationDeleted;
   }
 }
 

@@ -383,10 +383,12 @@ export function CenterPanel({
     return allMessages[currentChatContext.conversationId] || [];
   };
 
-  // Load initial messages from API when conversation changes
-  const { data: apiMessages } = useQuery({
+  // D1.1 & D1.2: Enhanced message loading with pagination
+  const { data: apiMessages, isLoading: messagesLoading } = useQuery({
     queryKey: [`/api/conversations/${currentChatContext?.conversationId}/messages`],
     enabled: !!currentChatContext?.conversationId,
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
   });
 
   // Process API messages when they load
@@ -1374,7 +1376,7 @@ export function CenterPanel({
           <>
             {/* Messages Container */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {isLoadingMessages && (
+              {messagesLoading && (
                 <div className="flex items-center justify-center py-4">
                   <div className="hatchin-text-muted text-sm">Loading conversation...</div>
                 </div>

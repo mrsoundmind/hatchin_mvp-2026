@@ -171,9 +171,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // D1.2: Enhanced message loading with pagination and filtering
   app.get("/api/conversations/:conversationId/messages", async (req, res) => {
     try {
-      const messages = await storage.getMessagesByConversation(req.params.conversationId);
+      const { page = "1", limit = "50", before, after, messageType } = req.query;
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      
+      const messages = await storage.getMessagesByConversation(
+        req.params.conversationId,
+        {
+          page: pageNum,
+          limit: limitNum,
+          before: before as string,
+          after: after as string,
+          messageType: messageType as string
+        }
+      );
+      
       res.json(messages);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch messages" });
@@ -190,6 +205,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid message data", details: error.errors });
       }
       res.status(500).json({ error: "Failed to create message" });
+    }
+  });
+
+  // D1.3: Conversation management API routes
+  app.put("/api/conversations/:conversationId/archive", async (req, res) => {
+    try {
+      const success = await storage.archiveConversation(req.params.conversationId);
+      if (!success) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.json({ message: "Conversation archived successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to archive conversation" });
+    }
+  });
+
+  app.put("/api/conversations/:conversationId/unarchive", async (req, res) => {
+    try {
+      const success = await storage.unarchiveConversation(req.params.conversationId);
+      if (!success) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.json({ message: "Conversation unarchived successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to unarchive conversation" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/conversations/archived", async (req, res) => {
+    try {
+      const archivedConversations = await storage.getArchivedConversations(req.params.projectId);
+      res.json(archivedConversations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch archived conversations" });
+    }
+  });
+
+  app.delete("/api/conversations/:conversationId", async (req, res) => {
+    try {
+      const success = await storage.deleteConversation(req.params.conversationId);
+      if (!success) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      res.json({ message: "Conversation deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete conversation" });
     }
   });
 

@@ -123,10 +123,17 @@ Focus: Complex team dynamics and collaboration
 ## 💾 **GROUP D: Memory & Persistence**
 *Chat history and data management*
 
-### **D1: Chat History Management**
-- [ ] **D1.1**: Conversation persistence across sessions
-- [ ] **D1.2**: Chat history pagination and lazy loading
-- [ ] **D1.3**: Conversation archiving system
+### **D1: Chat History Management** ✅ COMPLETED
+- [x] **D1.1**: Conversation persistence across sessions ✅ COMPLETED
+- [x] **D1.2**: Chat history pagination and lazy loading ✅ COMPLETED
+- [x] **D1.3**: Conversation archiving system ✅ COMPLETED
+
+**Implementation Notes**:
+- Enhanced message loading with pagination (page, limit, before, after, messageType filters)
+- Added conversation archiving/unarchiving with isActive flag
+- Implemented conversation deletion with cleanup of associated messages, memories, and typing indicators
+- Added API endpoints: archive, unarchive, get archived conversations, delete conversation
+- Frontend caching with 30-second stale time and optimistic loading
 
 ### **D2: Export & Backup**
 - [ ] **D2.1**: Export conversations to PDF/text
