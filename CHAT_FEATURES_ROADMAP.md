@@ -90,11 +90,15 @@ Focus: Complex team dynamics and collaboration
 ## 🎨 **GROUP C: Advanced Interactions**
 *Rich messaging features for better engagement*
 
-### **C1: Message Threading** ✅ COMPLETED
-- [x] **C1.1**: Add reply-to-message functionality
-- [x] **C1.2**: Create reply preview in chat input
-- [ ] **C1.3**: Thread navigation and collapse
+### **C1: Message Threading** 
+- [x] **C1.1**: Add reply-to-message functionality ✅ COMPLETED
+- [x] **C1.2**: Create reply preview in chat input ✅ COMPLETED
+- [x] **C1.3**: Thread navigation and collapse ✅ COMPLETED
 - [ ] **C1.4**: Thread notification system
+  - [ ] **C1.4.1**: Thread unread count tracking
+  - [ ] **C1.4.2**: Visual thread notification badges
+  - [ ] **C1.4.3**: Thread activity indicators
+  - [ ] **C1.4.4**: Thread notification persistence
 
 ### **C2: File Attachments**
 - [ ] **C2.1**: Image upload and display
