@@ -1,14 +1,8 @@
-import { OpenAI } from 'openai';
 import { roleProfiles } from './roleProfiles.js';
 import { trainingSystem } from './trainingSystem.js';
 import { executeColleagueLogic } from './colleagueLogic.js';
 import { UserBehaviorAnalyzer, type UserBehaviorProfile, type MessageAnalysis } from './userBehaviorAnalyzer.js';
 import { personalityEngine } from './personalityEvolution.js';
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 interface ChatContext {
   mode: 'project' | 'team' | 'agent';
@@ -29,6 +23,153 @@ interface ColleagueResponse {
   content: string;
   reasoning?: string;
   confidence: number;
+}
+
+// Local LLM configuration
+interface LocalLLMConfig {
+  endpoint?: string; // e.g., 'http://localhost:1234/v1/chat/completions' for LM Studio
+  model?: string;    // e.g., 'llama-2-7b-chat' or your trained model name
+  apiKey?: string;   // if your local server requires authentication
+}
+
+const DEFAULT_CONFIG: LocalLLMConfig = {
+  endpoint: process.env.LOCAL_LLM_ENDPOINT || 'http://localhost:1234/v1/chat/completions',
+  model: process.env.LOCAL_LLM_MODEL || 'local-model',
+  apiKey: process.env.LOCAL_LLM_API_KEY || 'not-needed'
+};
+
+// Mock LLM response for now - replace with actual local LLM calls
+async function callLocalLLM(prompt: string, config: LocalLLMConfig = DEFAULT_CONFIG): Promise<string> {
+  try {
+    // Try to call local LLM endpoint (LM Studio, Text Generation WebUI, etc.)
+    const response = await fetch(config.endpoint!, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.apiKey && config.apiKey !== 'not-needed' ? { 'Authorization': `Bearer ${config.apiKey}` } : {})
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 500,
+        temperature: 0.7,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Local LLM API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch (error) {
+    console.warn('Local LLM not available, using fallback:', error);
+    // Fallback to rule-based responses when local LLM is not available
+    return generateRuleBasedResponse(prompt);
+  }
+}
+
+// Stream-compatible local LLM call
+async function* callLocalLLMStream(prompt: string, config: LocalLLMConfig = DEFAULT_CONFIG, abortSignal?: AbortSignal): AsyncGenerator<string, void, unknown> {
+  try {
+    const response = await fetch(config.endpoint!, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.apiKey && config.apiKey !== 'not-needed' ? { 'Authorization': `Bearer ${config.apiKey}` } : {})
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 500,
+        temperature: 0.7,
+        stream: true
+      }),
+      signal: abortSignal
+    });
+
+    if (!response.ok) {
+      throw new Error(`Local LLM API error: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      if (abortSignal?.aborted) break;
+      
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          try {
+            const data = JSON.parse(line.slice(6));
+            const content = data.choices?.[0]?.delta?.content;
+            if (content) {
+              yield content;
+            }
+          } catch (e) {
+            // Skip malformed lines
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Local LLM streaming not available, using fallback:', error);
+    // Fallback: yield the full response at once
+    const fallbackResponse = generateRuleBasedResponse(prompt);
+    for (const char of fallbackResponse) {
+      if (abortSignal?.aborted) break;
+      yield char;
+      // Add small delay to simulate streaming
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  }
+}
+
+// Rule-based response generator for when LLM is not available
+function generateRuleBasedResponse(prompt: string): string {
+  const lowerPrompt = prompt.toLowerCase();
+  
+  // Extract role from prompt
+  let detectedRole = 'Product Manager';
+  for (const role of Object.keys(roleProfiles)) {
+    if (lowerPrompt.includes(role.toLowerCase())) {
+      detectedRole = role;
+      break;
+    }
+  }
+  
+  const roleProfile = roleProfiles[detectedRole];
+  
+  // Generate response based on role and content
+  if (lowerPrompt.includes('roadmap') || lowerPrompt.includes('plan')) {
+    return `As a ${detectedRole}, I'd suggest breaking this down into phases. What's our primary objective and timeline?`;
+  }
+  
+  if (lowerPrompt.includes('design') || lowerPrompt.includes('ui')) {
+    return `From a ${detectedRole} perspective, let's focus on the user experience. What's the main goal users are trying to achieve?`;
+  }
+  
+  if (lowerPrompt.includes('priority') || lowerPrompt.includes('urgent')) {
+    return `I'll help prioritize this. Let's evaluate the impact versus effort for each item.`;
+  }
+  
+  if (lowerPrompt.includes('technical') || lowerPrompt.includes('code')) {
+    return `Looking at this from a technical standpoint, we should consider scalability and maintainability. What's the expected load?`;
+  }
+  
+  // Default response based on role personality
+  return `As a ${detectedRole}, I think ${roleProfile.meaning.toLowerCase()}. Let me help you with this.`;
 }
 
 // B1.1: Add streaming response generation
@@ -76,11 +217,9 @@ export async function* generateStreamingResponse(
     // Create system prompt based on role and context
     const systemPrompt = `You are ${agentRole} in a ${context.mode} conversation. Project: ${context.projectName}${context.teamName ? `, Team: ${context.teamName}` : ''}.
 
-Role Context: ${roleProfile.expertise}
-Communication Style: ${roleProfile.communicationStyle}
-Personality: ${roleProfile.personality}
-
-${roleProfile.primaryGoals ? `Goals: ${roleProfile.primaryGoals}` : ''}
+Role Context: ${roleProfile.expertMindset}
+Communication Style: ${roleProfile.personality}
+Expertise: ${roleProfile.roleToolkit}
 
 ${sharedMemory ? `\n--- SHARED PROJECT MEMORY ---\n${sharedMemory}\n--- END MEMORY ---\n` : ''}
 
@@ -88,35 +227,22 @@ Be conversational, helpful, and stay in character. Remember user names and conte
 
 ${personalityPrompt}
 
-Respond as this specific role with appropriate expertise and personality. Keep responses concise and actionable.`;
+Respond as this specific role with appropriate expertise and personality. Keep responses concise and actionable.
 
-    // Create streaming completion
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage }
-      ],
-      stream: true,
-      temperature: 0.7,
-      max_tokens: userBehaviorProfile?.communicationStyle === 'anxious' ? 150 : 500,
-    }, { signal: abortSignal });
+User message: ${userMessage}`;
 
-    // Stream the response word by word
+    // Generate streaming response using local LLM
     let fullResponse = '';
-    for await (const chunk of completion) {
+    for await (const chunk of callLocalLLMStream(systemPrompt, DEFAULT_CONFIG, abortSignal)) {
       if (abortSignal?.aborted) {
         break;
       }
       
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        fullResponse += content;
-        yield content;
-      }
+      fullResponse += chunk;
+      yield chunk;
     }
     
-    console.log('✅ OpenAI streaming completed, total length:', fullResponse.length);
+    console.log('✅ Local LLM streaming completed, total length:', fullResponse.length);
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.log('Streaming response cancelled by user');
@@ -182,45 +308,28 @@ export async function generateIntelligentResponse(
     // Enhance prompt with training data
     const enhancedPrompt = trainingSystem.generateEnhancedPrompt(agentRole, userMessage, basePrompt.systemPrompt);
 
-    // Generate response using OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: enhancedPrompt
-        },
-        {
-          role: 'user', 
-          content: basePrompt.userPrompt
-        }
-      ],
-      max_tokens: 300,
-      temperature: 0.7,
-      presence_penalty: 0.1,
-      frequency_penalty: 0.1
-    });
-
-    let responseContent = completion.choices[0]?.message?.content || '';
+    // Generate response using local LLM
+    const responseContent = await callLocalLLM(enhancedPrompt);
     
     // Enhance response with custom logic results if available
+    let finalContent = responseContent;
     if (logicResult.shouldExecute && logicResult.enhancedResponse) {
-      responseContent = `${logicResult.enhancedResponse}\n\n${responseContent}`;
+      finalContent = `${logicResult.enhancedResponse}\n\n${responseContent}`;
     }
     
     // Calculate confidence based on response quality
-    const confidence = calculateConfidence(responseContent, userMessage, roleProfile);
+    const confidence = calculateConfidence(finalContent, userMessage, roleProfile);
 
     return {
-      content: responseContent,
+      content: finalContent,
       confidence,
       reasoning: `Generated using ${agentRole} expertise and conversation context${logicResult.shouldExecute ? ' with custom logic' : ''}`
     };
 
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    console.error('Local LLM API Error:', error);
     
-    // Fallback to keyword-based response if OpenAI fails
+    // Fallback to keyword-based response if local LLM fails
     return {
       content: generateFallbackResponse(userMessage, agentRole, context.mode),
       confidence: 0.3,
@@ -240,7 +349,7 @@ function createPromptTemplate(params: {
 }): { systemPrompt: string; userPrompt: string } {
   const { role, userMessage, context, roleProfile, userBehaviorProfile, messageAnalysis } = params;
   
-  const systemPrompt = `You are ${roleProfile.name}, a ${role} working on the "${context.projectName}" project.
+  const systemPrompt = `You are ${roleProfile.roleTitle}, a ${role} working on the "${context.projectName}" project.
 
 PERSONALITY: ${roleProfile.personality}
 EXPERTISE: ${roleProfile.expertMindset}
@@ -255,7 +364,7 @@ CONVERSATION HISTORY:
 ${context.recentMessages.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n')}
 
 INSTRUCTIONS:
-- Respond as ${roleProfile.name} with your specific expertise and personality
+- Respond as ${roleProfile.roleTitle} with your specific expertise and personality
 - Keep responses concise (2-3 sentences max)
 - Be helpful and actionable based on your role
 - Match the conversational tone
@@ -272,7 +381,7 @@ USER COMMUNICATION PROFILE (Confidence: ${(userBehaviorProfile.confidence * 100)
 
   const userPrompt = `User message: "${userMessage}"
 
-Respond as ${roleProfile.name} with your expertise in ${role}:`;
+Respond as ${roleProfile.roleTitle} with your expertise in ${role}:`;
 
   return { systemPrompt, userPrompt };
 }

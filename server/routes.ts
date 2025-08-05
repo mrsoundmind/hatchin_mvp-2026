@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertProjectSchema, insertTeamSchema, insertAgentSchema, insertMessageSchema, insertConversationSchema } from "@shared/schema";
 import { z } from "zod";
-import { generateIntelligentResponse, generateStreamingResponse } from "./ai/openaiService.js";
+import { generateIntelligentResponse, generateStreamingResponse } from "./ai/localLLMService.js";
 import { personalityEngine } from "./ai/personalityEvolution.js";
 import { trainingSystem } from "./ai/trainingSystem.js";
 import { initializePreTrainedColleagues, devTrainingTools } from "./ai/devTrainingTools.js";

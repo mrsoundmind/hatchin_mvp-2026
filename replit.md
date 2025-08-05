@@ -22,6 +22,7 @@ Chat header design preference: No emojis in main conversation titles (project/te
 - **Functional Starter Buttons**: Placeholder buttons now send real context-aware prompts and trigger AI responses
 - **Typing Indicators**: Added visual feedback when AI colleagues are responding with animated dots
 - **Improved Message Loading**: Enhanced API message transformation to use proper agent names from project data
+- **Local LLM Integration**: Removed OpenAI API dependency, implemented local LLM service for custom trained models
 
 ## System Architecture
 
@@ -116,6 +117,13 @@ Project
 - **@neondatabase/serverless**: Database driver
 - **zod**: Schema validation
 - **connect-pg-simple**: Session storage
+
+### AI Architecture
+- **Local LLM Service**: Custom implementation for running trained models locally
+- **Role-Based Personalities**: Each agent has specific expertise and communication styles
+- **Training Integration**: Ready for LLaMA Factory + QLoRA trained models
+- **Fallback Responses**: Rule-based responses when LLM is unavailable
+- **Streaming Support**: Real-time response generation with WebSocket integration
 
 ### Development Tools
 - **TypeScript**: Type safety across the stack
