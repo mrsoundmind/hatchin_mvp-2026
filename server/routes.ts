@@ -460,12 +460,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectId = parts.slice(1).join('-');
       } else if (mode === 'team') {
         // team-saas-startup-design-team: projectId=saas-startup, teamId=design-team  
-        projectId = parts[1];
-        contextId = parts.slice(2).join('-');
+        projectId = parts[1] + '-' + parts[2]; // saas-startup
+        contextId = parts.slice(3).join('-'); // design-team
       } else if (mode === 'agent') {
         // agent-saas-startup-product-manager: projectId=saas-startup, agentId=product-manager
-        projectId = parts[1]; 
-        contextId = parts.slice(2).join('-');
+        projectId = parts[1] + '-' + parts[2]; // saas-startup
+        contextId = parts.slice(3).join('-'); // product-manager
       } else {
         projectId = parts.slice(1).join('-');
       }
@@ -521,6 +521,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         agentId: respondingAgent.id,
         agentName: respondingAgent.name
       }));
+
+      // B3: Extract and store conversation memory BEFORE generating response
+      await extractAndStoreMemory(userMessage, { content: 'Processing...' }, conversationId, projectId);
+      await extractUserName(userMessage.content, conversationId);
 
       // Load conversation history for context
       const recentMessages = await storage.getMessagesByConversation(conversationId);
@@ -598,11 +602,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const savedResponse = await storage.createMessage(responseMessage);
           console.log('💾 Saved streaming response:', savedResponse.id);
           
-          // B3: Extract and store conversation memory
+          // B3: Update stored memory with actual AI response
           await extractAndStoreMemory(userMessage, savedResponse, conversationId, projectId);
-          
-          // Extract user name if mentioned
-          await extractUserName(userMessage.content, conversationId);
 
           // Notify streaming completed
           ws.send(JSON.stringify({

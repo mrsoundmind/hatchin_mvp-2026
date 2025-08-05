@@ -687,6 +687,7 @@ export class MemStorage implements IStorage {
     }
     
     this.conversationMemories.get(conversationId)!.push(memory);
+    console.log(`💾 Memory stored: ${content.substring(0, 50)}... in conversation ${conversationId}`);
   }
 
   async getConversationMemory(conversationId: string): Promise<any[]> {
@@ -696,12 +697,18 @@ export class MemStorage implements IStorage {
   async getProjectMemory(projectId: string): Promise<any[]> {
     const projectMemories: any[] = [];
     
-    // Get all conversations for this project
-    for (const conversation of this.conversations.values()) {
-      if (conversation.projectId === projectId) {
-        const conversationMemory = await this.getConversationMemory(conversation.id);
-        projectMemories.push(...conversationMemory);
+    // Search all conversation memories for project-related conversations
+    for (const [conversationId, memories] of this.conversationMemories) {
+      // Check if conversation ID belongs to this project
+      if (conversationId.includes(projectId)) {
+        projectMemories.push(...memories);
       }
+    }
+    
+    console.log(`🔍 Found ${projectMemories.length} memories for project ${projectId}`);
+    console.log(`🔍 Available conversations with memories:`, Array.from(this.conversationMemories.keys()));
+    if (projectMemories.length > 0) {
+      console.log(`🔍 Sample memories:`, projectMemories.slice(0, 3).map(m => m.content));
     }
     
     // Sort by importance (high to low) and recency
@@ -717,7 +724,10 @@ export class MemStorage implements IStorage {
     const projectMemories = await this.getProjectMemory(projectId);
     const agent = await this.getAgent(agentId);
     
+    console.log(`🔍 Memory debug - Agent: ${agentId}, Project: ${projectId}, Memories: ${projectMemories.length}`);
+    
     if (!agent || projectMemories.length === 0) {
+      console.log(`🚫 No memories found - Agent exists: ${!!agent}, Memory count: ${projectMemories.length}`);
       return "";
     }
 
