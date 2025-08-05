@@ -333,6 +333,34 @@ export default function Home() {
     }, 500);
   };
 
+  // Agent creation handler
+  const handleCreateAgent = async (agentData: Omit<Agent, 'id'>) => {
+    try {
+      const response = await fetch('/api/agents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(agentData),
+      });
+
+      if (response.ok) {
+        const newAgent = await response.json();
+        console.log('Agent created successfully:', newAgent);
+        
+        // Refresh agents data
+        await refetchAgents();
+        
+        // Optionally set the new agent as active
+        setActiveAgentId(newAgent.id);
+      } else {
+        console.error('Failed to create agent');
+      }
+    } catch (error) {
+      console.error('Error creating agent:', error);
+    }
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
@@ -378,6 +406,7 @@ export default function Home() {
           activeProjectAgents={activeProjectAgents}
           activeTeamId={activeTeamId}
           activeAgentId={activeAgentId}
+          onAddAgent={handleCreateAgent}
         />
         
         <RightSidebar

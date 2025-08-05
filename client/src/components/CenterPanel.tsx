@@ -8,6 +8,7 @@ import { ThreadContainer } from './ThreadContainer';
 import { useThreadNavigation } from '@/hooks/useThreadNavigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { AddHatchModal } from './AddHatchModal';
 
 type ChatMode = 'project' | 'team' | 'agent';
 
@@ -24,6 +25,7 @@ interface CenterPanelProps {
   activeProjectAgents: Agent[];
   activeTeamId: string | null;
   activeAgentId: string | null;
+  onAddAgent: (agent: Omit<Agent, 'id'>) => void;
 }
 
 export function CenterPanel({
@@ -32,6 +34,7 @@ export function CenterPanel({
   activeProjectAgents,
   activeTeamId,
   activeAgentId,
+  onAddAgent,
 }: CenterPanelProps) {
   // === SUBTASK 2.1.1: Core State Integration ===
   
@@ -39,6 +42,9 @@ export function CenterPanel({
   const [chatMode, setChatMode] = useState<ChatMode>('project');
   const [currentChatContext, setCurrentChatContext] = useState<ChatContext | null>(null);
   
+  // Add Hatch Modal state
+  const [showAddHatchModal, setShowAddHatchModal] = useState(false);
+
   // Message state management - persistent across conversations
   const [allMessages, setAllMessages] = useState<Record<string, Array<{
     id: string;
@@ -1281,7 +1287,11 @@ export function CenterPanel({
             </h1>
           </div>
           
-          <button className="hatchin-bg-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2">
+          <button 
+            onClick={() => setShowAddHatchModal(true)}
+            disabled={!activeProject}
+            className="hatchin-bg-blue text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <path d="M8 12h8"/>
@@ -1643,6 +1653,15 @@ export function CenterPanel({
           )}
         </form>
       </div>
+      
+      {/* Add Hatch Modal */}
+      <AddHatchModal
+        isOpen={showAddHatchModal}
+        onClose={() => setShowAddHatchModal(false)}
+        onAddAgent={onAddAgent}
+        activeProject={activeProject || null}
+        existingAgents={activeProjectAgents}
+      />
     </main>
   );
 }
