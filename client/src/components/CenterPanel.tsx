@@ -63,6 +63,7 @@ export function CenterPanel({
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [streamingContent, setStreamingContent] = useState('');
+  const [streamingAgent, setStreamingAgent] = useState<string | null>(null);
 
   // C1: Reply state management
   const [replyingTo, setReplyingTo] = useState<{
@@ -231,11 +232,13 @@ export function CenterPanel({
       setStreamingMessageId(message.messageId);
       setStreamingContent('');
       
-      // Get actual agent name for streaming
+      // Get actual agent name for streaming and set it for the typing indicator
       const getActualAgentName = (agentId: string) => {
         const agent = activeProjectAgents.find(a => a.id === agentId);
         return agent ? agent.name : agentId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
       };
+      
+      setStreamingAgent(message.agentName ? getActualAgentName(message.agentName) : 'AI Colleague');
 
       // Create placeholder message for streaming
       const streamingMessage = {
@@ -279,6 +282,7 @@ export function CenterPanel({
       setIsStreaming(false);
       setStreamingMessageId(null);
       setStreamingContent('');
+      setStreamingAgent(null);
       
       // Add the completed message to conversation
       if (message.message) {
@@ -302,31 +306,32 @@ export function CenterPanel({
           metadata: {}
         };
 
-        // Update existing message with final content instead of replacing
+        // CRITICAL FIX: Only update existing streaming message, never add new ones
         setAllMessages(prev => {
           const conversationId = message.message.conversationId;
           const messages = prev[conversationId] || [];
           
-          // Look for streaming message by the streaming message ID or the final message ID
-          const currentStreamingId = message.messageId || streamingMessageId;
+          // Find the existing streaming message to update
           const messageIndex = messages.findIndex(msg => 
-            msg.id === currentStreamingId || msg.id === message.message.id
+            msg.id === message.messageId && msg.isStreaming
           );
           
           if (messageIndex >= 0) {
-            // Update existing streaming message
+            // Update existing streaming message with final content
             const updatedMessages = [...messages];
             updatedMessages[messageIndex] = {
               ...updatedMessages[messageIndex],
-              id: message.message.id, // Update to final message ID
+              id: message.message.id, // Update to final message ID  
               content: message.message.content,
+              senderName: getActualAgentName(message.message.agentId),
               status: 'delivered' as const,
               isStreaming: false
             };
             return { ...prev, [conversationId]: updatedMessages };
           } else {
-            // Add new message if not found
-            return { ...prev, [conversationId]: [...messages, completedMessage] };
+            // Log warning - this shouldn't happen if streaming started properly
+            console.warn('Streaming completed but no streaming message found to update');
+            return prev;
           }
         });
         
@@ -338,6 +343,7 @@ export function CenterPanel({
       setIsStreaming(false);
       setStreamingMessageId(null);
       setStreamingContent('');
+      setStreamingAgent(null);
     }
     else if (message.type === 'connection_confirmed') {
       console.log('🔌 WebSocket connection confirmed for:', message.conversationId);
@@ -1363,26 +1369,7 @@ export function CenterPanel({
                 </div>
               )}
               
-              {/* Typing Indicator for AI Response */}
-              {isStreaming && (
-                <div className="flex items-start gap-3 px-0 py-2">
-                  <div className="w-8 h-8 rounded-full bg-hatchin-bg-card flex-shrink-0 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: 'hsl(215, 20%, 65%)' }} />
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="text-xs hatchin-text-muted mb-1">
-                      AI colleague is responding...
-                    </div>
-                    <div className="flex items-center gap-1 bg-hatchin-bg-card rounded-2xl px-4 py-3">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-hatchin-text-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-hatchin-text-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-hatchin-text-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+
               
               {/* C1.3: Thread Navigation and Collapse - Enhanced Message History */}
               {currentMessages.length > 0 && threadNavigation.threadStructure.threads.size > 0 ? (
@@ -1550,20 +1537,24 @@ export function CenterPanel({
                 })
               )}
               
-              {/* Typing Indicators - at bottom of messages */}
-              {typingColleagues.length > 0 && (
+              {/* Typing Indicators - Show with proper agent info */}
+              {isStreaming && streamingAgent && (
                 <div className="flex justify-start">
                   <div className="flex items-start gap-3 max-w-[85%]">
                     <div className="w-8 h-8 rounded-full bg-hatchin-text-muted flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-xs font-medium text-white">P</span>
+                      <span className="text-xs font-medium text-white">{streamingAgent.charAt(0)}</span>
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium hatchin-text mb-1">
-                        {typingColleagues[0]}
+                        {streamingAgent}
                       </span>
                       <div className="bg-hatchin-colleague hatchin-text border hatchin-border rounded-2xl px-4 py-3 shadow-sm">
-                        <div className="text-sm hatchin-text-muted italic">
-                          {typingColleagues[0]} is typing...
+                        <div className="flex items-center gap-1">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-hatchin-text-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 bg-hatchin-text-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 bg-hatchin-text-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
                         </div>
                       </div>
                     </div>
