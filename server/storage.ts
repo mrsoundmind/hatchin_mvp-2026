@@ -670,6 +670,33 @@ export class MemStorage implements IStorage {
     return reactions;
   }
 
+  // B4: Personality Evolution Storage
+  private personalityProfiles = new Map<string, any>();
+  private feedbackHistory = new Map<string, any[]>();
+
+  async storePersonalityProfile(agentId: string, userId: string, profile: any): Promise<void> {
+    const key = `${agentId}-${userId}`;
+    this.personalityProfiles.set(key, profile);
+  }
+
+  async getPersonalityProfile(agentId: string, userId: string): Promise<any | null> {
+    const key = `${agentId}-${userId}`;
+    return this.personalityProfiles.get(key) || null;
+  }
+
+  async storeFeedback(agentId: string, userId: string, feedback: any): Promise<void> {
+    const key = `${agentId}-${userId}`;
+    if (!this.feedbackHistory.has(key)) {
+      this.feedbackHistory.set(key, []);
+    }
+    this.feedbackHistory.get(key)!.push(feedback);
+  }
+
+  async getFeedbackHistory(agentId: string, userId: string): Promise<any[]> {
+    const key = `${agentId}-${userId}`;
+    return this.feedbackHistory.get(key) || [];
+  }
+
   // B3: Cross-Agent Memory Implementation
   async addConversationMemory(conversationId: string, memoryType: 'context' | 'summary' | 'key_points' | 'decisions', content: string, importance: number = 5): Promise<void> {
     const memory = {

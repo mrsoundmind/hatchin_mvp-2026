@@ -3,6 +3,7 @@ import { roleProfiles } from './roleProfiles.js';
 import { trainingSystem } from './trainingSystem.js';
 import { executeColleagueLogic } from './colleagueLogic.js';
 import { UserBehaviorAnalyzer, type UserBehaviorProfile, type MessageAnalysis } from './userBehaviorAnalyzer.js';
+import { personalityEngine } from './personalityEvolution.js';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -42,6 +43,7 @@ export async function* generateStreamingResponse(
     // B2.1: Analyze user behavior from conversation history
     let userBehaviorProfile: UserBehaviorProfile | null = null;
     let messageAnalysis: MessageAnalysis | null = null;
+    let personalityPrompt = '';
     
     if (context.userId && context.conversationHistory.length > 0) {
       const messagesForAnalysis = context.conversationHistory.map(msg => ({
@@ -60,6 +62,12 @@ export async function* generateStreamingResponse(
       
       userBehaviorProfile = UserBehaviorAnalyzer.analyzeUserBehavior(messagesForAnalysis, context.userId);
       messageAnalysis = UserBehaviorAnalyzer.analyzeMessage(userMessage, new Date().toISOString());
+      
+      // B4.1: Adapt personality based on user behavior
+      if (userBehaviorProfile && messageAnalysis) {
+        personalityEngine.adaptPersonalityFromBehavior(agentRole, context.userId, userBehaviorProfile, messageAnalysis);
+        personalityPrompt = personalityEngine.generatePersonalityPrompt(agentRole, context.userId);
+      }
     }
 
     const logicResult = executeColleagueLogic(agentRole, userMessage);
@@ -77,6 +85,8 @@ ${roleProfile.primaryGoals ? `Goals: ${roleProfile.primaryGoals}` : ''}
 ${sharedMemory ? `\n--- SHARED PROJECT MEMORY ---\n${sharedMemory}\n--- END MEMORY ---\n` : ''}
 
 Be conversational, helpful, and stay in character. Remember user names and context from previous messages. Respond naturally as a human colleague would, not as a formal AI assistant.
+
+${personalityPrompt}
 
 Respond as this specific role with appropriate expertise and personality. Keep responses concise and actionable.`;
 

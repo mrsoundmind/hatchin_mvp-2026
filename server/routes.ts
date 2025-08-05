@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { insertProjectSchema, insertTeamSchema, insertAgentSchema, insertMessageSchema, insertConversationSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateIntelligentResponse, generateStreamingResponse } from "./ai/openaiService.js";
+import { personalityEngine } from "./ai/personalityEvolution.js";
 import { trainingSystem } from "./ai/trainingSystem.js";
 import { initializePreTrainedColleagues, devTrainingTools } from "./ai/devTrainingTools.js";
 
@@ -214,6 +215,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         feedbackData: reactionData.feedbackData || {}
       });
 
+      // B4: Integrate reaction with personality evolution
+      if (reactionData.agentId) {
+        const feedback = reactionData.reactionType === 'thumbs_up' ? 'positive' : 'negative';
+        personalityEngine.adaptPersonalityFromFeedback(
+          reactionData.agentId,
+          userId,
+          feedback,
+          '', // User message context would need to be passed from frontend
+          '' // Agent response would need to be retrieved
+        );
+        
+        console.log(`🎯 B4: Personality feedback integrated: ${feedback} reaction for ${reactionData.agentId}`);
+      }
+
       res.json(reaction);
     } catch (error) {
       console.error('Error adding message reaction:', error);
@@ -280,6 +295,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to get stats" });
+    }
+  });
+
+  // B4: Personality Evolution API endpoints
+  app.get("/api/personality/:agentId/:userId", async (req, res) => {
+    try {
+      const { agentId, userId } = req.params;
+      const stats = personalityEngine.getPersonalityStats(agentId, userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching personality stats:", error);
+      res.status(500).json({ error: "Failed to fetch personality data" });
+    }
+  });
+
+  app.post("/api/personality/feedback", async (req, res) => {
+    try {
+      const { agentId, userId, feedback, messageContent, agentResponse } = req.body;
+      
+      if (!agentId || !userId || !feedback) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const updatedProfile = personalityEngine.adaptPersonalityFromFeedback(
+        agentId, userId, feedback, messageContent || '', agentResponse || ''
+      );
+      
+      // Store feedback for future analysis
+      await storage.storeFeedback(agentId, userId, {
+        feedback,
+        messageContent,
+        agentResponse,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json({ 
+        success: true, 
+        adaptationConfidence: updatedProfile.adaptationConfidence,
+        interactionCount: updatedProfile.interactionCount
+      });
+    } catch (error) {
+      console.error("Error processing personality feedback:", error);
+      res.status(500).json({ error: "Failed to process feedback" });
+    }
+  });
+
+  app.get("/api/personality/analytics/:agentId", async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const analytics = {
+        totalUsers: 0,
+        averageAdaptation: 0,
+        commonTraitAdjustments: [],
+        feedbackStats: { positive: 0, negative: 0 }
+      };
+      
+      // This would aggregate data across all users for this agent
+      // For now, return basic structure
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching personality analytics:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
     }
   });
 
@@ -604,6 +681,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // B3: Update stored memory with actual AI response
           await extractAndStoreMemory(userMessage, savedResponse, conversationId, projectId);
+          
+          // B4: Process personality evolution from this interaction
+          // This happens automatically in the streaming generation now
 
           // Notify streaming completed
           ws.send(JSON.stringify({
