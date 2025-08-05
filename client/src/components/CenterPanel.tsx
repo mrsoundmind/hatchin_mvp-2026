@@ -955,15 +955,49 @@ export function CenterPanel({
     setReplyingTo(null);
   };
 
-  const handleActionClick = (action: string) => {
-    console.log('Action triggered:', action);
+  const handleActionClick = async (action: string) => {
+    if (!currentChatContext) return;
     
-    if (action.includes('generateRoadmap')) {
-      console.log('🤖 Product Manager: Let me create a comprehensive roadmap for your SaaS startup...');
-    } else if (action.includes('setGoals')) {
-      console.log('🤖 Team Lead: I\'ll help you define SMART goals for each team...');
-    } else if (action.includes('summarizeTasks')) {
-      console.log('🤖 Project Coordinator: Here\'s a summary of current tasks for each team...');
+    let message = '';
+    const mode = currentChatContext.mode;
+    
+    // Generate context-appropriate messages
+    if (action === 'generateRoadmap') {
+      if (mode === 'project') {
+        message = 'Can you create a comprehensive product roadmap for our SaaS startup? Include key milestones, feature priorities, and timeline recommendations.';
+      } else if (mode === 'team') {
+        const activeTeam = activeProjectTeams.find(t => t.id === activeTeamId);
+        message = `Can you create a roadmap specifically for the ${activeTeam?.name} team? Focus on our team's deliverables and objectives.`;
+      } else if (mode === 'agent') {
+        const activeAgent = activeProjectAgents.find(a => a.id === activeAgentId);
+        message = `From your perspective as ${activeAgent?.role}, what should our roadmap priorities be?`;
+      }
+    } else if (action === 'setGoals') {
+      if (mode === 'project') {
+        message = 'Help me set clear, measurable goals for each team in our project. What SMART goals would you recommend for our SaaS startup?';
+      } else if (mode === 'team') {
+        const activeTeam = activeProjectTeams.find(t => t.id === activeTeamId);
+        message = `What specific goals should the ${activeTeam?.name} team focus on? Help me define clear objectives and success metrics.`;
+      } else if (mode === 'agent') {
+        const activeAgent = activeProjectAgents.find(a => a.id === activeAgentId);
+        message = `As our ${activeAgent?.role}, what goals should we prioritize? What would success look like from your perspective?`;
+      }
+    } else if (action === 'summarizeTasks') {
+      if (mode === 'project') {
+        message = 'Can you summarize the current tasks and responsibilities for each team? Give me an overview of what everyone should be working on.';
+      } else if (mode === 'team') {
+        const activeTeam = activeProjectTeams.find(t => t.id === activeTeamId);
+        message = `What are the key tasks and priorities the ${activeTeam?.name} team should focus on right now?`;
+      } else if (mode === 'agent') {
+        const activeAgent = activeProjectAgents.find(a => a.id === activeAgentId);
+        message = `What tasks and priorities should I focus on? What would you recommend as the next steps in your area of expertise?`;
+      }
+    }
+    
+    if (message) {
+      // Send the message through the normal chat flow
+      await handleSendMessage(message, undefined);  // No reply context for starter messages
+      console.log(`Sent ${action} prompt:`, message);
     }
   };
 
@@ -1176,19 +1210,22 @@ export function CenterPanel({
                   onClick={() => handleActionClick('generateRoadmap')}
                   className="hatchin-bg-card hover:bg-hatchin-border hatchin-text px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Give me a product roadmap
+                  {currentChatContext?.mode === 'project' ? 'Give me a product roadmap' :
+                   currentChatContext?.mode === 'team' ? 'Create our team roadmap' : 'What should our roadmap priorities be?'}
                 </button>
                 <button 
                   onClick={() => handleActionClick('setGoals')}
                   className="hatchin-bg-card hover:bg-hatchin-border hatchin-text px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Set team goals
+                  {currentChatContext?.mode === 'project' ? 'Set team goals' :
+                   currentChatContext?.mode === 'team' ? 'Define our team goals' : 'What goals should we prioritize?'}
                 </button>
                 <button 
                   onClick={() => handleActionClick('summarizeTasks')}
                   className="hatchin-bg-card hover:bg-hatchin-border hatchin-text px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Summarize each team's task
+                  {currentChatContext?.mode === 'project' ? 'Summarize each team\'s tasks' :
+                   currentChatContext?.mode === 'team' ? 'What should our team focus on?' : 'What are my next steps?'}
                 </button>
               </div>
             </div>
