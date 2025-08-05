@@ -402,11 +402,7 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
                 
                 <button
                   onClick={() => setActiveTab('individual')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
-                    activeTab === 'individual'
-                      ? 'bg-[#6C82FF] text-white'
-                      : 'text-[#A6A7AB] hover:text-[#F1F1F3] hover:bg-[#2A2D33]'
-                  }`}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 text-[#A6A7AB] hover:text-[#F1F1F3] hover:bg-[#2A2D33] mt-[13px] mb-[13px]"
                 >
                   <User size={20} />
                   <div className="flex-1">
