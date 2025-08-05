@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { X, Search, Users, User, Sparkles } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { X, Search, Users, User, Sparkles, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
 import type { Project, Agent, Team } from '@shared/schema';
 
 interface TeamTemplate {
@@ -355,157 +356,186 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="hatchin-bg-panel rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#23262B] rounded-2xl border border-[#43444B] shadow-2xl flex flex-col" style={{ width: '1200px', height: '700px' }}>
         {/* Header */}
-        <div className="p-6 hatchin-border border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold hatchin-text">Add Hatch</h2>
-              <p className="hatchin-text-muted text-sm mt-1">
-                Add AI teammates to {activeProject?.name || 'your project'}
-              </p>
-            </div>
-            <button 
-              onClick={onClose}
-              className="hatchin-text-muted hover:hatchin-text transition-colors"
-            >
-              <X size={24} />
-            </button>
+        <div className="p-6 border-b border-[#43444B] flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-[#F1F1F3] mb-1">
+              Add Hatch
+            </h2>
+            <p className="text-[#A6A7AB] text-sm">
+              Add AI teammates to {activeProject?.name || 'your project'}
+            </p>
           </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="p-6 hatchin-border border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 hatchin-text-muted" size={18} />
-            <input
-              type="text"
-              placeholder={activeTab === 'teams' ? 'Search templates and roles...' : 'Search agents and specialties...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 hatchin-bg-card hatchin-border border rounded-lg hatchin-text placeholder-hatchin-text-muted focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex hatchin-border border-b">
           <button
-            onClick={() => setActiveTab('teams')}
-            className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'teams'
-                ? 'hatchin-text border-hatchin-blue'
-                : 'hatchin-text-muted border-transparent hover:hatchin-text'
-            }`}
+            onClick={onClose}
+            className="text-[#A6A7AB] hover:text-[#F1F1F3] transition-colors"
           >
-            <div className="flex items-center justify-center gap-2">
-              <Users size={18} />
-              Teams Template
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('individual')}
-            className={`flex-1 px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'individual'
-                ? 'hatchin-text border-hatchin-blue'
-                : 'hatchin-text-muted border-transparent hover:hatchin-text'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <User size={18} />
-              Individual Hatch
-            </div>
+            <X size={20} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-96">
-          {activeTab === 'teams' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredTeamTemplates.map((template) => (
-                <div key={template.id} className="group hatchin-bg-card hatchin-border border rounded-xl p-6 hover:hatchin-border-hover transition-all duration-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{template.icon}</div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium hatchin-text">{template.name}</h3>
-                          {template.suggested && (
-                            <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                              <Sparkles size={12} />
-                              Suggested
-                            </span>
-                          )}
-                        </div>
-                        <p className="hatchin-text-muted text-sm">{template.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 hatchin-text-muted text-sm">
-                      <Users size={14} />
-                      {template.agents.length}
-                    </div>
+        {/* Content Area with Sidebar Layout */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Category Sidebar */}
+          <div className="w-64 border-r border-[#43444B] bg-[#1A1C1F]">
+            <div className="p-4">
+              <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('teams')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+                    activeTab === 'teams'
+                      ? 'bg-[#6C82FF] text-white'
+                      : 'text-[#A6A7AB] hover:text-[#F1F1F3] hover:bg-[#2A2D33]'
+                  }`}
+                >
+                  <Users size={20} />
+                  <div className="flex-1">
+                    <div className="font-medium">Teams Template</div>
+                    <div className="text-xs opacity-75">Pre-built teams</div>
                   </div>
+                  <div className="text-xs bg-black/20 px-2 py-1 rounded-full">
+                    {TEAM_TEMPLATES.length}
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('individual')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
+                    activeTab === 'individual'
+                      ? 'bg-[#6C82FF] text-white'
+                      : 'text-[#A6A7AB] hover:text-[#F1F1F3] hover:bg-[#2A2D33]'
+                  }`}
+                >
+                  <User size={20} />
+                  <div className="flex-1">
+                    <div className="font-medium">Individual Hatch</div>
+                    <div className="text-xs opacity-75">Single specialists</div>
+                  </div>
+                  <div className="text-xs bg-black/20 px-2 py-1 rounded-full">
+                    {INDIVIDUAL_AGENTS.length}
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
 
-                  <div className="space-y-2 mb-4">
-                    {template.agents.map((agent, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full ${getColorClasses(agent.color)} flex items-center justify-center text-white text-xs font-medium`}>
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col">
+            {/* Search Bar */}
+            <div className="p-6 border-b border-[#43444B]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#A6A7AB]" size={18} />
+                <input
+                  type="text"
+                  placeholder={activeTab === 'teams' ? 'Search team templates...' : 'Search individual agents...'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-[#37383B] border border-[#43444B] rounded-xl text-[#F1F1F3] placeholder-[#A6A7AB] focus:border-[#6C82FF] focus:outline-none focus:ring-1 focus:ring-[#6C82FF] transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Content Grid */}
+            <div className="flex-1 p-6 overflow-y-auto">
+              {activeTab === 'teams' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredTeamTemplates.map((template) => (
+                    <motion.div
+                      key={template.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="bg-[#2A2D33] border border-[#43444B] rounded-2xl p-6 hover:border-[#6C82FF]/30 transition-all duration-200 group cursor-pointer"
+                      onClick={() => handleUseTemplate(template)}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-[#37383B] flex items-center justify-center text-2xl">
+                            {template.icon}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-[#F1F1F3]">{template.name}</h3>
+                              {template.suggested && (
+                                <span className="bg-[#6C82FF] text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                                  <Sparkles size={10} />
+                                  Suggested
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[#A6A7AB] text-sm mt-1">{template.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-[#A6A7AB] text-sm">
+                          <Users size={14} />
+                          {template.agents.length}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 mb-6">
+                        {template.agents.map((agent, index) => (
+                          <div key={index} className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full ${getColorClasses(agent.color)} flex items-center justify-center text-white text-xs font-medium`}>
+                              {agent.initials}
+                            </div>
+                            <span className="text-[#F1F1F3] text-sm">{agent.role}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button className="w-full bg-[#6C82FF] text-white py-3 px-4 rounded-xl text-sm font-medium hover:bg-[#5A6FE8] transition-colors">
+                        Use Template
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredIndividualAgents.map((agent, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="bg-[#2A2D33] border border-[#43444B] rounded-2xl p-5 hover:border-[#6C82FF]/30 transition-all duration-200 group cursor-pointer"
+                      onClick={() => handleAddIndividualAgent(agent)}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className={`w-12 h-12 rounded-full ${getColorClasses(agent.color)} flex items-center justify-center text-white text-sm font-medium flex-shrink-0`}>
                           {agent.initials}
                         </div>
-                        <span className="hatchin-text text-sm">{agent.role}</span>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-[#F1F1F3] text-sm">{agent.name}</h3>
+                          <p className="text-[#A6A7AB] text-xs">{agent.role}</p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
 
-                  <button
-                    onClick={() => handleUseTemplate(template)}
-                    className="w-full hatchin-border border hatchin-text py-2 px-4 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 group-hover:hatchin-bg-blue group-hover:text-white group-hover:border-transparent transition-all duration-200"
-                  >
-                    Use Template
-                  </button>
+                      <p className="text-[#A6A7AB] text-xs mb-4 leading-relaxed line-clamp-3">
+                        {agent.description}
+                      </p>
+
+                      <button className="w-full bg-[#6C82FF] text-white py-2.5 px-3 rounded-xl text-xs font-medium hover:bg-[#5A6FE8] transition-colors">
+                        Add Agent
+                      </button>
+                    </motion.div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredIndividualAgents.map((agent, index) => (
-                <div key={index} className="group hatchin-bg-card hatchin-border border rounded-xl p-4 hover:hatchin-border-hover transition-all duration-200">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-full ${getColorClasses(agent.color)} flex items-center justify-center text-white text-sm font-medium flex-shrink-0`}>
-                      {agent.initials}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-medium hatchin-text">{agent.name}</h3>
-                      <p className="hatchin-text-muted text-sm">{agent.role}</p>
-                    </div>
-                  </div>
+              )}
 
-                  <p className="hatchin-text-muted text-xs mb-4 leading-relaxed">
-                    {agent.description}
+              {/* No results */}
+              {((activeTab === 'teams' && filteredTeamTemplates.length === 0) || 
+                (activeTab === 'individual' && filteredIndividualAgents.length === 0)) && (
+                <div className="text-center py-12">
+                  <div className="text-[#F1F1F3] text-lg mb-2">No results found</div>
+                  <p className="text-[#A6A7AB] text-sm">
+                    Try adjusting your search terms or browse all {activeTab === 'teams' ? 'templates' : 'agents'}
                   </p>
-
-                  <button
-                    onClick={() => handleAddIndividualAgent(agent)}
-                    className="w-full hatchin-border border hatchin-text py-2 px-3 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 group-hover:hatchin-bg-blue group-hover:text-white group-hover:border-transparent transition-all duration-200"
-                  >
-                    Add Agent
-                  </button>
                 </div>
-              ))}
+              )}
             </div>
-          )}
-
-          {/* No results */}
-          {((activeTab === 'teams' && filteredTeamTemplates.length === 0) || 
-            (activeTab === 'individual' && filteredIndividualAgents.length === 0)) && (
-            <div className="text-center py-12">
-              <div className="hatchin-text-muted text-lg mb-2">No results found</div>
-              <p className="hatchin-text-muted text-sm">
-                Try adjusting your search terms or browse all {activeTab === 'teams' ? 'templates' : 'agents'}
-              </p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
