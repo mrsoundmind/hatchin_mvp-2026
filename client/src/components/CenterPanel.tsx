@@ -58,6 +58,13 @@ export function CenterPanel({
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [streamingContent, setStreamingContent] = useState('');
 
+  // C1: Reply state management
+  const [replyingTo, setReplyingTo] = useState<{
+    id: string;
+    content: string;
+    senderName: string;
+  } | null>(null);
+
   // === SUBTASK 3.1.1: Connect WebSocket to Chat UI ===
   
   // WebSocket connection for real-time messaging
@@ -818,6 +825,27 @@ export function CenterPanel({
     reactionMutation.mutate({ messageId, reactionType, agentId });
   };
 
+  // C1.1: Handle reply to message
+  const handleReplyToMessage = (messageId: string, content: string, senderName: string) => {
+    setReplyingTo({
+      id: messageId,
+      content,
+      senderName
+    });
+    // Focus the input field after setting reply
+    setTimeout(() => {
+      const input = document.querySelector('[data-testid="input-message"]') as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 100);
+  };
+
+  // Clear reply state
+  const clearReply = () => {
+    setReplyingTo(null);
+  };
+
   const handleActionClick = (action: string) => {
     console.log('Action triggered:', action);
     
@@ -1072,6 +1100,7 @@ export function CenterPanel({
                     isGrouped={isGrouped}
                     showReactions={message.messageType === 'agent'}
                     onReaction={handleMessageReaction}
+                    onReply={handleReplyToMessage}
                     chatContext={{
                       mode: currentChatContext?.mode || 'project',
                       color: chatContextColor
@@ -1113,6 +1142,23 @@ export function CenterPanel({
       </div>
       {/* Chat Input */}
       <div className="p-6 hatchin-border border-t">
+        {/* C1.2: Reply preview */}
+        {replyingTo && (
+          <div className="mb-3 p-3 bg-gray-800/50 border-l-2 border-blue-500 rounded flex items-start justify-between">
+            <div className="flex-1">
+              <div className="text-xs text-blue-400 mb-1">Replying to {replyingTo.senderName}</div>
+              <div className="text-sm text-gray-300 truncate">{replyingTo.content.substring(0, 100)}...</div>
+            </div>
+            <button
+              type="button"
+              onClick={clearReply}
+              className="ml-2 text-gray-400 hover:text-gray-200 p-1"
+            >
+              ×
+            </button>
+          </div>
+        )}
+      
         <form onSubmit={handleChatSubmit} className="relative">
           <input 
             name="message"

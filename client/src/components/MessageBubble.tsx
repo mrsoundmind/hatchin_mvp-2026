@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { ThumbsUp, ThumbsDown, Copy, MoreHorizontal } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Reply } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 
 interface MessageBubbleProps {
   message: {
@@ -19,10 +22,16 @@ interface MessageBubbleProps {
     metadata?: {
       agentRole?: string;
     };
+    replyTo?: {
+      id: string;
+      content: string;
+      senderName: string;
+    };
   };
   isGrouped?: boolean; // whether this message is grouped with previous message from same sender
   showReactions?: boolean; // only show reactions for agent messages
   onReaction?: (messageId: string, reactionType: 'thumbs_up' | 'thumbs_down') => void;
+  onReply?: (messageId: string, content: string, senderName: string) => void;
   chatContext?: {
     mode: 'project' | 'team' | 'agent';
     color: string;
@@ -34,6 +43,7 @@ export function MessageBubble({
   isGrouped = false, 
   showReactions = false,
   onReaction,
+  onReply,
   chatContext
 }: MessageBubbleProps) {
   const [showActions, setShowActions] = useState(false);
@@ -118,6 +128,13 @@ export function MessageBubble({
     }
   };
 
+  // C1.1: Handle reply to message
+  const handleReplyToMessage = () => {
+    if (onReply) {
+      onReply(message.id, message.content, message.senderName);
+    }
+  };
+
   // A3.2: Message grouping logic - don't show sender name/avatar if grouped
   const showSenderInfo = !isGrouped && isAgent;
 
@@ -153,13 +170,60 @@ export function MessageBubble({
                 </div>
               )}
 
+              {/* C1.2: Reply-to indicator */}
+              {message.replyTo && (
+                <div className="mb-2 px-3 py-2 bg-gray-800/50 border-l-2 border-gray-600 rounded text-xs">
+                  <div className="text-gray-400 mb-1">Replying to {message.replyTo.senderName}</div>
+                  <div className="text-gray-300 truncate">{message.replyTo.content.substring(0, 60)}...</div>
+                </div>
+              )}
+
               {/* Message bubble */}
               <div
                 className={`p-3 rounded-lg ${getBubbleStyles().className}`}
                 style={getBubbleStyles().style}
               >
-                <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {message.content}
+                {/* C4.3: Markdown support for message content */}
+                <div className="text-sm leading-relaxed">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                      // Custom styling for markdown elements
+                      code: ({node, inline, className, children, ...props}) => {
+                        return inline ? (
+                          <code
+                            className="bg-gray-800 text-green-400 px-1 py-0.5 rounded text-xs font-mono"
+                            {...props}
+                          >
+                            {children}
+                          </code>
+                        ) : (
+                          <pre className="bg-gray-800 p-3 rounded-lg overflow-x-auto my-2">
+                            <code className="text-green-400 text-xs font-mono" {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        );
+                      },
+                      h1: ({children}) => <h1 className="text-lg font-bold mb-2 text-gray-100">{children}</h1>,
+                      h2: ({children}) => <h2 className="text-base font-bold mb-2 text-gray-100">{children}</h2>,
+                      h3: ({children}) => <h3 className="text-sm font-bold mb-1 text-gray-100">{children}</h3>,
+                      ul: ({children}) => <ul className="list-disc list-inside mb-2 text-gray-200">{children}</ul>,
+                      ol: ({children}) => <ol className="list-decimal list-inside mb-2 text-gray-200">{children}</ol>,
+                      li: ({children}) => <li className="mb-1">{children}</li>,
+                      p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                      strong: ({children}) => <strong className="font-semibold text-gray-100">{children}</strong>,
+                      em: ({children}) => <em className="italic text-gray-200">{children}</em>,
+                      blockquote: ({children}) => (
+                        <blockquote className="border-l-2 border-gray-600 pl-3 my-2 text-gray-300 italic">
+                          {children}
+                        </blockquote>
+                      ),
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
                   {/* B1.2: Streaming indicator for AI messages */}
                   {message.isStreaming && (
                     <span className="inline-flex items-center ml-2">
@@ -216,21 +280,23 @@ export function MessageBubble({
                       </TooltipContent>
                     </Tooltip>
 
+                    {/* C1.1: Reply button */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0 hover:bg-blue-500/20 text-gray-400 hover:text-blue-400"
-                          onClick={handleCopyMessage}
+                          onClick={handleReplyToMessage}
                         >
-                          <Copy className="h-3 w-3" />
+                          <Reply className="h-3 w-3" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Copy message</p>
+                        <p>Reply to message</p>
                       </TooltipContent>
                     </Tooltip>
+
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -243,6 +309,11 @@ export function MessageBubble({
           <ContextMenuItem onClick={handleCopyMessage}>
             <Copy className="w-4 h-4 mr-2" />
             Copy message
+          </ContextMenuItem>
+          {/* C1.1: Reply option in context menu */}
+          <ContextMenuItem onClick={handleReplyToMessage}>
+            <Reply className="w-4 h-4 mr-2" />
+            Reply to message
           </ContextMenuItem>
           {showReactions && isAgent && (
             <>

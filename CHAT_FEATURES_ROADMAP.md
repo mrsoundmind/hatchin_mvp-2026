@@ -76,9 +76,9 @@ Focus: Complex team dynamics and collaboration
 ## 🎨 **GROUP C: Advanced Interactions**
 *Rich messaging features for better engagement*
 
-### **C1: Message Threading**
-- [ ] **C1.1**: Add reply-to-message functionality
-- [ ] **C1.2**: Create threaded conversation view
+### **C1: Message Threading** ✅ COMPLETED
+- [x] **C1.1**: Add reply-to-message functionality
+- [x] **C1.2**: Create reply preview in chat input
 - [ ] **C1.3**: Thread navigation and collapse
 - [ ] **C1.4**: Thread notification system
 
@@ -94,10 +94,10 @@ Focus: Complex team dynamics and collaboration
 - [ ] **C3.3**: Search result highlighting
 - [ ] **C3.4**: Advanced search operators
 
-### **C4: Rich Message Types**
-- [ ] **C4.1**: Code block formatting and syntax highlighting
+### **C4: Rich Message Types** ✅ COMPLETED
+- [x] **C4.1**: Code block formatting and syntax highlighting
 - [ ] **C4.2**: Link previews and metadata
-- [ ] **C4.3**: Markdown support for formatting
+- [x] **C4.3**: Markdown support for formatting
 - [ ] **C4.4**: Interactive message components
 
 ---
