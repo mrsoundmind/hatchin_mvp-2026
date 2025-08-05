@@ -22,6 +22,11 @@ Chat header design preference: No emojis in main conversation titles (project/te
 - **Functional Starter Buttons**: Placeholder buttons now send real context-aware prompts and trigger AI responses
 - **Typing Indicators**: Added visual feedback when AI colleagues are responding with animated dots
 - **Improved Message Loading**: Enhanced API message transformation to use proper agent names from project data
+- **Immediate Typing Response**: Fixed starter button delays - typing indicators now appear instantly when clicked
+- **Enhanced Fallback Responses**: Comprehensive role-specific responses ready for trained model integration
+
+## Deferred Issues
+- **Frontend Message Display**: Streaming responses generate correctly (verified in logs) but UI display needs refinement - will be resolved when trained models are integrated
 
 ## System Architecture
 
