@@ -88,6 +88,7 @@ Respond as this specific role with appropriate expertise and personality. Keep r
     }, { signal: abortSignal });
 
     // Stream the response word by word
+    let fullResponse = '';
     for await (const chunk of completion) {
       if (abortSignal?.aborted) {
         break;
@@ -95,9 +96,12 @@ Respond as this specific role with appropriate expertise and personality. Keep r
       
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
+        fullResponse += content;
         yield content;
       }
     }
+    
+    console.log('✅ OpenAI streaming completed, total length:', fullResponse.length);
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.log('Streaming response cancelled by user');
