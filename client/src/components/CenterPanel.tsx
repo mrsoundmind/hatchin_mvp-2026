@@ -306,13 +306,19 @@ export function CenterPanel({
         setAllMessages(prev => {
           const conversationId = message.message.conversationId;
           const messages = prev[conversationId] || [];
-          const messageIndex = messages.findIndex(msg => msg.id === message.messageId);
+          
+          // Look for streaming message by the streaming message ID or the final message ID
+          const currentStreamingId = message.messageId || streamingMessageId;
+          const messageIndex = messages.findIndex(msg => 
+            msg.id === currentStreamingId || msg.id === message.message.id
+          );
           
           if (messageIndex >= 0) {
             // Update existing streaming message
             const updatedMessages = [...messages];
             updatedMessages[messageIndex] = {
               ...updatedMessages[messageIndex],
+              id: message.message.id, // Update to final message ID
               content: message.message.content,
               status: 'delivered' as const,
               isStreaming: false
@@ -332,6 +338,9 @@ export function CenterPanel({
       setIsStreaming(false);
       setStreamingMessageId(null);
       setStreamingContent('');
+    }
+    else if (message.type === 'connection_confirmed') {
+      console.log('🔌 WebSocket connection confirmed for:', message.conversationId);
     }
   };
 
