@@ -435,86 +435,127 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
 
             {/* Content Grid */}
             <div className="flex-1 p-6 overflow-y-auto">
-              <div 
-                className="grid gap-4 grid-cols-3"
-                style={{ 
-                  gridTemplateColumns: 'repeat(3, 1fr)'
-                }}
-              >
-                {(activeTab === 'teams' ? filteredTeamTemplates : filteredIndividualAgents).map((item, index) => (
-                  <motion.div
-                    key={activeTab === 'teams' ? item.id : index}
-                    className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50"
-                    style={{ 
-                      minHeight: '200px'
-                    }}
-                    onClick={() => activeTab === 'teams' ? handleUseTemplate(item) : handleAddIndividualAgent(item)}
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    layout={false}
-                    initial={false}
-                  >
-                    {/* Pack Header */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${
-                          activeTab === 'teams' ? 'bg-[#6C82FF]/20' : `${getColorClasses(item.color)}/20`
-                        }`}>
-                          {activeTab === 'teams' ? item.icon : item.initials}
+              {activeTab === 'teams' ? (
+                <div 
+                  className="grid gap-4 grid-cols-3"
+                  style={{ 
+                    gridTemplateColumns: 'repeat(3, 1fr)'
+                  }}
+                >
+                  {filteredTeamTemplates.map((template) => (
+                    <motion.div
+                      key={template.id}
+                      className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50"
+                      style={{ 
+                        minHeight: '200px'
+                      }}
+                      onClick={() => handleUseTemplate(template)}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      layout={false}
+                      initial={false}
+                    >
+                      {/* Pack Header */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-[#6C82FF]/20 flex items-center justify-center text-lg">
+                            {template.icon}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-[#F1F1F3] text-sm mb-1 flex items-center gap-2">
+                              {template.name}
+                              {template.suggested && (
+                                <motion.div 
+                                  initial={{ scale: 0 }} 
+                                  animate={{ scale: 1 }} 
+                                  className="text-[#6C82FF]"
+                                >
+                                  <Sparkles size={10} />
+                                </motion.div>
+                              )}
+                            </h3>
+                            <p className="text-[#A6A7AB] text-xs leading-tight">
+                              {template.description}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="text-[#F1F1F3] text-sm mb-1 flex items-center gap-2">
-                            {activeTab === 'teams' ? item.name : item.name}
-                            {activeTab === 'teams' && item.suggested && (
-                              <motion.div 
-                                initial={{ scale: 0 }} 
-                                animate={{ scale: 1 }} 
-                                className="text-[#6C82FF]"
-                              >
-                                <Sparkles size={10} />
-                              </motion.div>
-                            )}
-                          </h3>
-                          <p className="text-[#A6A7AB] text-xs leading-tight">
-                            {activeTab === 'teams' ? item.description : item.role}
-                          </p>
-                        </div>
-                      </div>
-                      {activeTab === 'teams' && (
                         <div className="ml-1 text-[#A6A7AB] flex items-center gap-1">
                           <Users size={10} />
-                          <span className="text-xs">{item.agents.length}</span>
+                          <span className="text-xs">{template.agents.length}</span>
                         </div>
-                      )}
-                    </div>
-                    
-                    {/* Team Preview - Compact */}
-                    <div className="mt-2 mb-2">
-                      {activeTab === 'teams' ? (
+                      </div>
+                      
+                      {/* Team Preview - Compact */}
+                      <div className="mt-2 mb-2">
                         <div className="flex flex-wrap gap-1">
-                          {item.agents.map((agent, agentIndex) => (
+                          {template.agents.map((agent, agentIndex) => (
                             <div key={agentIndex} className="flex items-center gap-1 bg-[#23262B] rounded px-2 py-1">
                               <User className="w-3 h-3 text-[#6C82FF]" />
                               <span className="text-xs text-[#F1F1F3]">{agent.role}</span>
                             </div>
                           ))}
                         </div>
-                      ) : (
+                      </div>
+                      
+                      {/* CTA Button - Fixed at bottom */}
+                      <div className="mt-auto pt-2">
+                        <button className="w-full px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium bg-[#43444B] hover:bg-[#6C82FF] text-[#F1F1F3] hover:text-white">
+                          Use Pack
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div 
+                  className="grid gap-4 grid-cols-3"
+                  style={{ 
+                    gridTemplateColumns: 'repeat(3, 1fr)'
+                  }}
+                >
+                  {filteredIndividualAgents.map((agent, index) => (
+                    <motion.div
+                      key={index}
+                      className="bg-[#37383B] rounded-xl p-3 border-2 transition-all duration-200 cursor-pointer flex flex-col border-[#43444B] hover:border-[#6C82FF]/50"
+                      style={{ 
+                        minHeight: '200px'
+                      }}
+                      onClick={() => handleAddIndividualAgent(agent)}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      layout={false}
+                      initial={false}
+                    >
+                      {/* Pack Header */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold ${getColorClasses(agent.color)}`}>
+                            {agent.initials}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-[#F1F1F3] text-sm mb-1">{agent.name}</h3>
+                            <p className="text-[#A6A7AB] text-xs leading-tight">{agent.role}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Description */}
+                      <div className="mt-2 mb-2">
                         <p className="text-[#A6A7AB] text-xs leading-tight">
-                          {item.description}
+                          {agent.description}
                         </p>
-                      )}
-                    </div>
-                    
-                    {/* CTA Button - Fixed at bottom */}
-                    <div className="mt-auto pt-2">
-                      <button className="w-full px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium bg-[#43444B] hover:bg-[#6C82FF] text-[#F1F1F3] hover:text-white">
-                        {activeTab === 'teams' ? 'Use Pack' : 'Add Agent'}
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                      </div>
+                      
+                      {/* CTA Button - Fixed at bottom */}
+                      <div className="mt-auto pt-2">
+                        <button className="w-full px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium bg-[#43444B] hover:bg-[#6C82FF] text-[#F1F1F3] hover:text-white">
+                          Add Agent
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
               {/* No results */}
               {((activeTab === 'teams' && filteredTeamTemplates.length === 0) || 
