@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent, type Conversation, type InsertConversation, type Message, type InsertMessage, type MessageReaction, type InsertMessageReaction, type TypingIndicator, type InsertTypingIndicator } from "@shared/schema";
+import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent, type Conversation, type InsertConversation, type Message, type InsertMessage, type MessageReaction, type InsertMessageReaction, type EmojiReaction, type InsertEmojiReaction, type TypingIndicator, type InsertTypingIndicator } from "@shared/schema";
 import { starterPacksByCategory, allHatchTemplates } from "@shared/templates";
 import { randomUUID } from "crypto";
 
@@ -47,6 +47,11 @@ export interface IStorage {
   // Message reaction methods for AI training
   addMessageReaction(reaction: InsertMessageReaction): Promise<MessageReaction>;
   getMessageReactions(messageId: string): Promise<MessageReaction[]>;
+  
+  // Emoji reaction methods for team collaboration
+  addEmojiReaction(reaction: InsertEmojiReaction): Promise<EmojiReaction>;
+  getEmojiReactions(messageId: string): Promise<EmojiReaction[]>;
+  removeEmojiReaction(messageId: string, userId: string, emoji: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -57,6 +62,7 @@ export class MemStorage implements IStorage {
   private conversations: Map<string, Conversation>;
   private messages: Map<string, Message>;
   private messageReactions: Map<string, MessageReaction>;
+  private emojiReactions: Map<string, EmojiReaction>;
   private typingIndicators: Map<string, TypingIndicator>;
 
   constructor() {
@@ -67,6 +73,7 @@ export class MemStorage implements IStorage {
     this.conversations = new Map();
     this.messages = new Map();
     this.messageReactions = new Map();
+    this.emojiReactions = new Map();
     this.typingIndicators = new Map();
     
     // Initialize with sample data matching the prototype
@@ -589,6 +596,7 @@ export class MemStorage implements IStorage {
         personality?: string;
         mentions?: string[];
       },
+      reactions: {},
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -619,8 +627,17 @@ export class MemStorage implements IStorage {
   async addMessageReaction(reaction: InsertMessageReaction): Promise<MessageReaction> {
     const newReaction: MessageReaction = {
       id: randomUUID(),
-      ...reaction,
-      createdAt: new Date()
+      messageId: reaction.messageId,
+      userId: reaction.userId,
+      reactionType: reaction.reactionType as "thumbs_up" | "thumbs_down",
+      agentId: reaction.agentId || null,
+      feedbackData: (reaction.feedbackData as {
+        responseQuality?: number;
+        helpfulness?: number;
+        accuracy?: number;
+        notes?: string;
+      }) || {},
+      createdAt: new Date(),
     };
     
     // Store reaction - use unique key to allow one reaction per user per message
@@ -632,12 +649,65 @@ export class MemStorage implements IStorage {
 
   async getMessageReactions(messageId: string): Promise<MessageReaction[]> {
     const reactions: MessageReaction[] = [];
-    for (const [key, reaction] of this.messageReactions) {
+    for (const reaction of this.messageReactions.values()) {
       if (reaction.messageId === messageId) {
         reactions.push(reaction);
       }
     }
     return reactions;
+  }
+
+  // Emoji reaction methods for team collaboration
+  async addEmojiReaction(reaction: InsertEmojiReaction): Promise<EmojiReaction> {
+    // Check if user already reacted with this emoji to this message
+    let existingReaction: EmojiReaction | undefined;
+    for (const r of this.emojiReactions.values()) {
+      if (r.messageId === reaction.messageId && 
+          r.userId === reaction.userId && 
+          r.emoji === reaction.emoji) {
+        existingReaction = r;
+        break;
+      }
+    }
+    
+    if (existingReaction) {
+      // Remove existing reaction (toggle behavior)
+      this.emojiReactions.delete(existingReaction.id);
+      return existingReaction; // Return the removed reaction to indicate toggle
+    }
+    
+    // Add new reaction
+    const newReaction: EmojiReaction = {
+      id: randomUUID(),
+      messageId: reaction.messageId,
+      userId: reaction.userId,
+      emoji: reaction.emoji,
+      createdAt: new Date(),
+    };
+    this.emojiReactions.set(newReaction.id, newReaction);
+    return newReaction;
+  }
+
+  async getEmojiReactions(messageId: string): Promise<EmojiReaction[]> {
+    const reactions: EmojiReaction[] = [];
+    for (const reaction of this.emojiReactions.values()) {
+      if (reaction.messageId === messageId) {
+        reactions.push(reaction);
+      }
+    }
+    return reactions;
+  }
+
+  async removeEmojiReaction(messageId: string, userId: string, emoji: string): Promise<boolean> {
+    for (const [key, reaction] of this.emojiReactions.entries()) {
+      if (reaction.messageId === messageId && 
+          reaction.userId === userId && 
+          reaction.emoji === emoji) {
+        this.emojiReactions.delete(key);
+        return true;
+      }
+    }
+    return false;
   }
 }
 
