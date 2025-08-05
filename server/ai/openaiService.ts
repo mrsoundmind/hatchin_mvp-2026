@@ -5,10 +5,10 @@ import { executeColleagueLogic } from './colleagueLogic.js';
 import { UserBehaviorAnalyzer, type UserBehaviorProfile, type MessageAnalysis } from './userBehaviorAnalyzer.js';
 import { personalityEngine } from './personalityEvolution.js';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
+// Initialize OpenAI client (conditionally)
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
 interface ChatContext {
   mode: 'project' | 'team' | 'agent';
@@ -40,6 +40,16 @@ export async function* generateStreamingResponse(
   abortSignal?: AbortSignal
 ): AsyncGenerator<string, void, unknown> {
   try {
+    // Fallback to local response if no OpenAI API key
+    if (!openai) {
+      const fallbackResponse = generateFallbackResponse(userMessage, agentRole, context.mode);
+      for (const word of fallbackResponse.split(' ')) {
+        if (abortSignal?.aborted) break;
+        yield word + ' ';
+        await new Promise(resolve => setTimeout(resolve, 50)); // Simulate streaming
+      }
+      return;
+    }
     // B2.1: Analyze user behavior from conversation history
     let userBehaviorProfile: UserBehaviorProfile | null = null;
     let messageAnalysis: MessageAnalysis | null = null;
@@ -133,6 +143,14 @@ export async function generateIntelligentResponse(
   context: ChatContext
 ): Promise<ColleagueResponse> {
   try {
+    // Fallback to local response if no OpenAI API key
+    if (!openai) {
+      return {
+        content: generateFallbackResponse(userMessage, agentRole, context.mode),
+        confidence: 0.3,
+        reasoning: 'Local fallback response (OpenAI API key not available)'
+      };
+    }
     // B2.1: Analyze user behavior from conversation history
     let userBehaviorProfile: UserBehaviorProfile | null = null;
     let messageAnalysis: MessageAnalysis | null = null;
