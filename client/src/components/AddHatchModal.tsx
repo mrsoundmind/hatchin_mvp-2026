@@ -355,7 +355,7 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
     }
   };
 
-  const handleAddIndividualAgent = (agent: IndividualAgent) => {
+  const handleAddIndividualAgent = async (agent: IndividualAgent) => {
     if (!activeProject) return;
 
     // Check if agent with this role already exists
@@ -365,24 +365,59 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
       return; // Skip if already exists
     }
 
-    const agentData: Omit<Agent, 'id'> = {
-      name: agent.role, // Use role as default name
-      role: agent.role,
-      color: agent.color,
-      teamId: null, // Individual agent - not part of any team
-      projectId: activeProject.id,
-      personality: {
-        traits: [],
-        communicationStyle: 'professional',
-        expertise: agent.expertise,
-        welcomeMessage: `Hi! I'm your ${agent.role}. ${agent.description}`
-      },
-      isSpecialAgent: false
-    };
+    try {
+      // First, check if there's an "Individual Agents" team, or create one
+      let individualTeam;
+      const teamsResponse = await fetch(`/api/projects/${activeProject.id}/teams`);
+      const teams = await teamsResponse.json();
+      
+      // Look for existing Individual Agents team
+      individualTeam = teams.find((team: any) => team.name === 'Individual Agents');
+      
+      // If no Individual Agents team exists, create one
+      if (!individualTeam) {
+        const teamResponse = await fetch('/api/teams', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: 'Individual Agents',
+            emoji: '👤',
+            projectId: activeProject.id,
+          }),
+        });
 
-    console.log('Creating individual agent:', agentData);
-    onAddAgent(agentData);
-    onClose();
+        if (!teamResponse.ok) {
+          console.error('Failed to create Individual Agents team');
+          return;
+        }
+
+        individualTeam = await teamResponse.json();
+        console.log('Created Individual Agents team:', individualTeam);
+      }
+
+      const agentData: Omit<Agent, 'id'> = {
+        name: agent.role, // Use role as default name
+        role: agent.role,
+        color: agent.color,
+        teamId: individualTeam.id, // Assign to Individual Agents team
+        projectId: activeProject.id,
+        personality: {
+          traits: [],
+          communicationStyle: 'professional',
+          expertise: agent.expertise,
+          welcomeMessage: `Hi! I'm your ${agent.role}. ${agent.description}`
+        },
+        isSpecialAgent: false
+      };
+
+      console.log('Creating individual agent:', agentData);
+      onAddAgent(agentData);
+      onClose();
+    } catch (error) {
+      console.error('Error creating individual agent:', error);
+    }
   };
 
   if (!isOpen) return null;
