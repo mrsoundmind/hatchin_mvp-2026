@@ -370,6 +370,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Store active connections by conversation ID
   const activeConnections = new Map<string, Set<WebSocket>>();
+  
+  // Track active responses to prevent duplicates  
+  const activeResponses = new Set<string>();
 
   wss.on('connection', (ws: WebSocket, req) => {
     console.log('New WebSocket connection established');
@@ -412,15 +415,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             // Start streaming AI response
             console.log('🚀 Starting streaming response...');
-            try {
-              await handleStreamingColleagueResponse(savedUserMessage, data.conversationId, ws);
-            } catch (error) {
-              console.error('❌ Streaming response error:', error);
-              ws.send(JSON.stringify({
-                type: 'streaming_error',
-                messageId,
-                error: 'Failed to generate response'
-              }));
+            const responseKey = `${data.conversationId}-${savedUserMessage.id}`;
+            
+            // Prevent duplicate responses
+            if (!activeResponses.has(responseKey)) {
+              activeResponses.add(responseKey);
+              try {
+                await handleStreamingColleagueResponse(savedUserMessage, data.conversationId, ws);
+              } catch (error) {
+                console.error('❌ Streaming response error:', error);
+                ws.send(JSON.stringify({
+                  type: 'streaming_error',
+                  messageId,
+                  error: 'Failed to generate response'
+                }));
+              } finally {
+                // Clean up response tracking
+                activeResponses.delete(responseKey);
+              }
+            } else {
+              console.log('⚠️ Duplicate response prevented for:', responseKey);
             }
             break;
 

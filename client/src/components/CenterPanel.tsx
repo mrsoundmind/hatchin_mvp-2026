@@ -1047,6 +1047,49 @@ export function CenterPanel({
     setReplyingTo(null);
   };
 
+  // Helper function to send starter messages
+  const sendStarterMessage = (content: string) => {
+    if (!currentChatContext) return;
+    
+    const messageContext = validateMessageContext();
+    if (messageContext.canSendMessage) {
+      const tempMessageId = `temp-${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      
+      const userMessage = {
+        id: tempMessageId,
+        content,
+        senderId: 'user',
+        senderName: 'You',
+        messageType: 'user' as const,
+        timestamp,
+        conversationId: currentChatContext.conversationId,
+        status: 'sending' as const,
+        parentMessageId: undefined,
+        threadRootId: undefined,
+        threadDepth: 0,
+        metadata: {}
+      };
+      
+      addMessageToConversation(currentChatContext.conversationId, userMessage);
+      
+      const wsMessage = {
+        type: 'send_message_streaming',
+        conversationId: currentChatContext.conversationId,
+        message: {
+          ...userMessage,
+          userId: 'user'
+        }
+      };
+      
+      if (connectionStatus === 'connected') {
+        sendWebSocketMessage(wsMessage);
+      } else {
+        queueMessage(wsMessage);
+      }
+    }
+  };
+
   const handleActionClick = async (action: string) => {
     if (!currentChatContext) return;
     
@@ -1349,18 +1392,33 @@ export function CenterPanel({
               </p>
               
               <div className="flex flex-wrap gap-3 justify-center pt-[11px] pb-[11px]">
-                <div className="hatchin-bg-card hatchin-text px-4 py-2 rounded-lg text-sm font-medium border-2 border-dashed border-hatchin-text-muted opacity-50">
+                <button 
+                  onClick={() => sendStarterMessage(currentChatContext?.mode === 'project' ? 'Give me a product roadmap' :
+                   currentChatContext?.mode === 'team' ? 'Create our team roadmap' : 'What should our roadmap priorities be?')}
+                  className="hatchin-bg-card hatchin-text px-4 py-2 rounded-lg text-sm font-medium border border-hatchin-text-muted hover:border-hatchin-accent hover:bg-hatchin-accent/10 transition-colors cursor-pointer"
+                  data-testid="button-starter-roadmap"
+                >
                   {currentChatContext?.mode === 'project' ? 'Give me a product roadmap' :
                    currentChatContext?.mode === 'team' ? 'Create our team roadmap' : 'What should our roadmap priorities be?'}
-                </div>
-                <div className="hatchin-bg-card hatchin-text px-4 py-2 rounded-lg text-sm font-medium border-2 border-dashed border-hatchin-text-muted opacity-50">
+                </button>
+                <button 
+                  onClick={() => sendStarterMessage(currentChatContext?.mode === 'project' ? 'Set team goals' :
+                   currentChatContext?.mode === 'team' ? 'Define our team goals' : 'What goals should we prioritize?')}
+                  className="hatchin-bg-card hatchin-text px-4 py-2 rounded-lg text-sm font-medium border border-hatchin-text-muted hover:border-hatchin-accent hover:bg-hatchin-accent/10 transition-colors cursor-pointer"
+                  data-testid="button-starter-goals"
+                >
                   {currentChatContext?.mode === 'project' ? 'Set team goals' :
                    currentChatContext?.mode === 'team' ? 'Define our team goals' : 'What goals should we prioritize?'}
-                </div>
-                <div className="hatchin-bg-card hatchin-text px-4 py-2 rounded-lg text-sm font-medium border-2 border-dashed border-hatchin-text-muted opacity-50">
+                </button>
+                <button 
+                  onClick={() => sendStarterMessage(currentChatContext?.mode === 'project' ? 'Summarize each team\'s tasks' :
+                   currentChatContext?.mode === 'team' ? 'What should our team focus on?' : 'What are my next steps?')}
+                  className="hatchin-bg-card hatchin-text px-4 py-2 rounded-lg text-sm font-medium border border-hatchin-text-muted hover:border-hatchin-accent hover:bg-hatchin-accent/10 transition-colors cursor-pointer"
+                  data-testid="button-starter-tasks"
+                >
                   {currentChatContext?.mode === 'project' ? 'Summarize each team\'s tasks' :
                    currentChatContext?.mode === 'team' ? 'What should our team focus on?' : 'What are my next steps?'}
-                </div>
+                </button>
               </div>
             </div>
           </div>
