@@ -318,10 +318,10 @@ export function CenterPanel({
           
           // Find the existing streaming message to update
           console.log('Looking for streaming message with ID:', message.messageId);
-          console.log('Current messages:', messages.map(m => ({id: m.id, isStreaming: m.isStreaming})));
+          console.log('Current messages:', messages.map(m => ({id: m.id, isStreaming: m.metadata?.isStreaming})));
           
           const messageIndex = messages.findIndex(msg => 
-            msg.id === message.messageId && msg.isStreaming
+            msg.id === message.messageId && msg.metadata?.isStreaming
           );
           
           if (messageIndex >= 0) {
@@ -333,7 +333,7 @@ export function CenterPanel({
               content: message.message.content,
               senderName: getActualAgentName(message.message.agentId),
               status: 'delivered' as const,
-              isStreaming: false
+              metadata: { ...updatedMessages[messageIndex].metadata, isStreaming: false }
             };
             return { ...prev, [conversationId]: updatedMessages };
           } else {
