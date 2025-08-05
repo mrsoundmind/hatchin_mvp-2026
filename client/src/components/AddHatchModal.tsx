@@ -78,6 +78,52 @@ const TEAM_TEMPLATES: TeamTemplate[] = [
       { name: 'Alex', role: 'Product Manager', color: 'blue', initials: 'PM' },
       { name: 'Emma', role: 'Growth Expert', color: 'orange', initials: 'GE' }
     ]
+  },
+  {
+    id: 'launch-team',
+    name: 'Launch Team',
+    description: 'Successfully launch and scale your product',
+    icon: '🚀',
+    agents: [
+      { name: 'Alex', role: 'Product Manager', color: 'blue', initials: 'PM' },
+      { name: 'Emma', role: 'Growth Expert', color: 'orange', initials: 'GE' },
+      { name: 'Jake', role: 'Copywriter', color: 'pink', initials: 'CW' },
+      { name: 'Nina', role: 'PR Specialist', color: 'cyan', initials: 'PR' }
+    ]
+  },
+  {
+    id: 'analytics-team',
+    name: 'Analytics Team',
+    description: 'Make data-driven decisions',
+    icon: '📊',
+    agents: [
+      { name: 'David', role: 'Data Analyst', color: 'teal', initials: 'DA' },
+      { name: 'Emma', role: 'Growth Expert', color: 'orange', initials: 'GE' },
+      { name: 'Alex', role: 'Product Manager', color: 'blue', initials: 'PM' }
+    ]
+  },
+  {
+    id: 'content-team',
+    name: 'Content Team',
+    description: 'Create engaging content and storytelling',
+    icon: '✍️',
+    agents: [
+      { name: 'Lisa', role: 'Content Creator', color: 'yellow', initials: 'CC' },
+      { name: 'Jake', role: 'Copywriter', color: 'pink', initials: 'CW' },
+      { name: 'Tom', role: 'Brand Strategist', color: 'indigo', initials: 'BS' },
+      { name: 'Nina', role: 'PR Specialist', color: 'cyan', initials: 'PR' }
+    ]
+  },
+  {
+    id: 'support-team',
+    name: 'Customer Success',
+    description: 'Ensure customer satisfaction and retention',
+    icon: '🤝',
+    agents: [
+      { name: 'Amy', role: 'Customer Success', color: 'emerald', initials: 'CS' },
+      { name: 'Jake', role: 'Copywriter', color: 'pink', initials: 'CW' },
+      { name: 'Emma', role: 'Growth Expert', color: 'orange', initials: 'GE' }
+    ]
   }
 ];
 
@@ -87,7 +133,7 @@ const INDIVIDUAL_AGENTS: IndividualAgent[] = [
     role: 'Product Manager',
     color: 'blue',
     initials: 'PM',
-    description: 'Strategic product planning and roadmap development',
+    description: 'Leads product strategy, roadmap planning, and cross-functional coordination to deliver user-centered solutions.',
     expertise: ['Product Strategy', 'User Research', 'Roadmap Planning']
   },
   {
@@ -95,7 +141,7 @@ const INDIVIDUAL_AGENTS: IndividualAgent[] = [
     role: 'Product Designer',
     color: 'green',
     initials: 'PD',
-    description: 'User experience and interface design',
+    description: 'Creates intuitive user experiences and beautiful interfaces through research-driven design.',
     expertise: ['UI/UX Design', 'Prototyping', 'User Testing']
   },
   {
@@ -103,7 +149,7 @@ const INDIVIDUAL_AGENTS: IndividualAgent[] = [
     role: 'UI Engineer',
     color: 'purple',
     initials: 'UE',
-    description: 'Frontend development and user interfaces',
+    description: 'Builds responsive frontend applications with modern frameworks and best practices.',
     expertise: ['React', 'TypeScript', 'Frontend Architecture']
   },
   {
@@ -111,40 +157,88 @@ const INDIVIDUAL_AGENTS: IndividualAgent[] = [
     role: 'Backend Developer',
     color: 'red',
     initials: 'BD',
-    description: 'Server-side development and APIs',
+    description: 'Develops scalable server architecture, APIs, and database systems for robust applications.',
     expertise: ['Node.js', 'Databases', 'API Design']
   },
   {
     name: 'Emma',
-    role: 'QA Lead',
+    role: 'Growth Expert',
     color: 'orange',
-    initials: 'QA',
-    description: 'Quality assurance and testing',
-    expertise: ['Test Automation', 'Quality Processes', 'Bug Tracking']
+    initials: 'GE',
+    description: 'Drives user acquisition, retention, and revenue growth through data-driven strategies.',
+    expertise: ['Growth Hacking', 'Analytics', 'User Acquisition']
   },
   {
     name: 'Jake',
-    role: 'Growth Expert',
+    role: 'Copywriter',
     color: 'pink',
-    initials: 'GE',
-    description: 'Marketing and user acquisition',
-    expertise: ['Growth Hacking', 'Analytics', 'User Acquisition']
+    initials: 'CW',
+    description: 'Crafts compelling copy and messaging that converts visitors into customers.',
+    expertise: ['Copywriting', 'Brand Voice', 'Conversion Optimization']
   },
   {
     name: 'Lisa',
     role: 'Content Creator',
     color: 'yellow',
     initials: 'CC',
-    description: 'Content strategy and creation',
-    expertise: ['Content Strategy', 'Copywriting', 'Brand Voice']
+    description: 'Develops engaging content strategies and creates multimedia content that resonates with audiences.',
+    expertise: ['Content Strategy', 'Video Production', 'Social Media']
   },
   {
     name: 'Tom',
     role: 'Brand Strategist',
     color: 'indigo',
     initials: 'BS',
-    description: 'Brand development and positioning',
+    description: 'Shapes brand identity, positioning, and messaging to create memorable brand experiences.',
     expertise: ['Brand Strategy', 'Market Positioning', 'Brand Identity']
+  },
+  {
+    name: 'Amy',
+    role: 'Customer Success',
+    color: 'emerald',
+    initials: 'CS',
+    description: 'Ensures customer satisfaction, drives adoption, and builds long-term relationships.',
+    expertise: ['Customer Onboarding', 'Retention', 'Support Strategy']
+  },
+  {
+    name: 'Nina',
+    role: 'PR Specialist',
+    color: 'cyan',
+    initials: 'PR',
+    description: 'Manages public relations, media outreach, and builds brand awareness through strategic communications.',
+    expertise: ['Media Relations', 'Press Releases', 'Crisis Communication']
+  },
+  {
+    name: 'Ryan',
+    role: 'Data Analyst',
+    color: 'teal',
+    initials: 'DA',
+    description: 'Analyzes user behavior and business metrics to provide actionable insights for decision-making.',
+    expertise: ['Data Analysis', 'Business Intelligence', 'Reporting']
+  },
+  {
+    name: 'Sophie',
+    role: 'Sales Expert',
+    color: 'rose',
+    initials: 'SE',
+    description: 'Drives revenue growth through strategic sales processes, lead qualification, and relationship building.',
+    expertise: ['Sales Strategy', 'Lead Generation', 'Conversion Optimization']
+  },
+  {
+    name: 'Carlos',
+    role: 'DevOps Engineer',
+    color: 'slate',
+    initials: 'DO',
+    description: 'Manages infrastructure, deployment pipelines, and ensures reliable, scalable system operations.',
+    expertise: ['CI/CD', 'Cloud Infrastructure', 'Monitoring']
+  },
+  {
+    name: 'Zoe',
+    role: 'QA Lead',
+    color: 'amber',
+    initials: 'QA',
+    description: 'Ensures product quality through comprehensive testing strategies and quality assurance processes.',
+    expertise: ['Test Automation', 'Quality Processes', 'Bug Tracking']
   }
 ];
 
@@ -157,7 +251,13 @@ const getColorClasses = (color: string) => {
     orange: 'bg-orange-500',
     pink: 'bg-pink-500',
     yellow: 'bg-yellow-500',
-    indigo: 'bg-indigo-500'
+    indigo: 'bg-indigo-500',
+    cyan: 'bg-cyan-500',
+    teal: 'bg-teal-500',
+    emerald: 'bg-emerald-500',
+    rose: 'bg-rose-500',
+    slate: 'bg-slate-500',
+    amber: 'bg-amber-500'
   };
   return colorMap[color] || 'bg-gray-500';
 };
@@ -324,7 +424,7 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
           {activeTab === 'teams' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredTeamTemplates.map((template) => (
-                <div key={template.id} className="hatchin-bg-card hatchin-border border rounded-xl p-6 hover:hatchin-border-hover transition-colors">
+                <div key={template.id} className="group hatchin-bg-card hatchin-border border rounded-xl p-6 hover:hatchin-border-hover transition-all duration-200">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">{template.icon}</div>
@@ -360,7 +460,7 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
 
                   <button
                     onClick={() => handleUseTemplate(template)}
-                    className="w-full hatchin-bg-blue text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
+                    className="w-full hatchin-border border hatchin-text py-2 px-4 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 group-hover:hatchin-bg-blue group-hover:text-white group-hover:border-transparent transition-all duration-200"
                   >
                     Use Template
                   </button>
@@ -370,8 +470,8 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredIndividualAgents.map((agent, index) => (
-                <div key={index} className="hatchin-bg-card hatchin-border border rounded-xl p-4 hover:hatchin-border-hover transition-colors">
-                  <div className="flex items-start gap-3 mb-3">
+                <div key={index} className="group hatchin-bg-card hatchin-border border rounded-xl p-4 hover:hatchin-border-hover transition-all duration-200">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className={`w-10 h-10 rounded-full ${getColorClasses(agent.color)} flex items-center justify-center text-white text-sm font-medium flex-shrink-0`}>
                       {agent.initials}
                     </div>
@@ -381,26 +481,13 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
                     </div>
                   </div>
 
-                  <p className="hatchin-text-muted text-xs mb-3 leading-relaxed">
+                  <p className="hatchin-text-muted text-xs mb-4 leading-relaxed">
                     {agent.description}
                   </p>
 
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {agent.expertise.slice(0, 2).map((skill, skillIndex) => (
-                      <span key={skillIndex} className="bg-hatchin-bg-panel hatchin-text-muted text-xs px-2 py-1 rounded">
-                        {skill}
-                      </span>
-                    ))}
-                    {agent.expertise.length > 2 && (
-                      <span className="hatchin-text-muted text-xs px-2 py-1">
-                        +{agent.expertise.length - 2}
-                      </span>
-                    )}
-                  </div>
-
                   <button
                     onClick={() => handleAddIndividualAgent(agent)}
-                    className="w-full hatchin-bg-blue text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
+                    className="w-full hatchin-border border hatchin-text py-2 px-3 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 group-hover:hatchin-bg-blue group-hover:text-white group-hover:border-transparent transition-all duration-200"
                   >
                     Add Agent
                   </button>
