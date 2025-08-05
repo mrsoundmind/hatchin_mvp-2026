@@ -14,7 +14,7 @@ Chat header design preference: No emojis in main conversation titles (project/te
 
 **Active Feature**: C1.4 Thread Notification System (BOOKMARKED - badges implemented but data loading needs debugging)
 **Recent Achievement**: Fixed API message loading, created threaded test data, implemented notification badge components
-**Next Priority**: C2 File Attachments - core file sharing functionality
+**Next Priority**: B1 Response Streaming - real-time AI message streaming for natural conversation flow
 **Philosophy**: AI agents with shared memory and adaptive personalities create personalized, context-aware collaboration experiences
 
 ## System Architecture
