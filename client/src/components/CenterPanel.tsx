@@ -6,7 +6,7 @@ import { MessageBubble } from './MessageBubble';
 import { MessageSkeleton } from './MessageSkeleton';
 import { ThreadContainer } from './ThreadContainer';
 import { useThreadNavigation } from '@/hooks/useThreadNavigation';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
 type ChatMode = 'project' | 'team' | 'agent';
@@ -301,11 +301,46 @@ export function CenterPanel({
     return allMessages[currentChatContext.conversationId] || [];
   };
 
+  // Load initial messages from API when conversation changes
+  const { data: apiMessages } = useQuery({
+    queryKey: [`/api/conversations/${currentChatContext?.conversationId}/messages`],
+    enabled: !!currentChatContext?.conversationId,
+  });
+
+  // Process API messages when they load
+  useEffect(() => {
+    if (apiMessages && currentChatContext && Array.isArray(apiMessages)) {
+      console.log(`📥 Loaded ${apiMessages.length} messages from API for ${currentChatContext.conversationId}`);
+      // Transform API messages to match our format
+      const transformedMessages = apiMessages.map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        senderId: msg.agentId || msg.userId || 'unknown',
+        senderName: msg.agentId ? getAgentDisplayName(msg.agentId) : 'You',
+        messageType: msg.messageType,
+        timestamp: msg.createdAt,
+        conversationId: msg.conversationId,
+        status: 'delivered' as const,
+        parentMessageId: msg.parentMessageId,
+        threadRootId: msg.threadRootId,
+        threadDepth: msg.threadDepth || 0,
+        metadata: msg.metadata || {}
+      }));
+      
+      // Replace messages for this conversation
+      setAllMessages(prev => ({
+        ...prev,
+        [currentChatContext.conversationId]: transformedMessages
+      }));
+    }
+  }, [apiMessages, currentChatContext]);
+
   // C1.3: Thread navigation state
   const currentMessages = getCurrentMessages();
   
   // TEST: Log message structure for debugging
   console.log('📊 Current messages for thread analysis:', currentMessages.length);
+  console.log('💾 API Messages loaded:', apiMessages?.length || 0);
   
   const threadNavigation = useThreadNavigation(currentMessages.map(msg => ({
     ...msg,
