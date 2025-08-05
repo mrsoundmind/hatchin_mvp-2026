@@ -190,7 +190,8 @@ export function MessageBubble({
                     rehypePlugins={[rehypeHighlight]}
                     components={{
                       // Custom styling for markdown elements
-                      code: ({node, inline, className, children, ...props}) => {
+                      code: ({node, className, children, ...props}) => {
+                        const inline = !className?.includes('language-');
                         return inline ? (
                           <code
                             className="bg-gray-800 text-green-400 px-1 py-0.5 rounded text-xs font-mono"
