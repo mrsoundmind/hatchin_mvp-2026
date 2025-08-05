@@ -294,37 +294,65 @@ export function AddHatchModal({ isOpen, onClose, onAddAgent, activeProject, exis
     );
   }, [searchQuery]);
 
-  const handleUseTemplate = (template: TeamTemplate) => {
+  const handleUseTemplate = async (template: TeamTemplate) => {
     if (!activeProject) return;
 
-    // Create all agents from the template
-    template.agents.forEach((templateAgent, index) => {
-      // Check if agent with this role already exists
-      const existingAgent = existingAgents.find(agent => agent.role === templateAgent.role);
-      if (existingAgent) return; // Skip if already exists
-
-      const agentData: Omit<Agent, 'id'> = {
-        name: templateAgent.name,
-        role: templateAgent.role,
-        color: templateAgent.color,
-        teamId: '', // Will be set by the parent component
+    try {
+      // First, create the team
+      const teamData = {
+        name: template.name,
+        emoji: template.icon,
         projectId: activeProject.id,
-        personality: {
-          traits: [],
-          communicationStyle: 'professional',
-          expertise: [],
-          welcomeMessage: `Hi! I'm ${templateAgent.name}, your ${templateAgent.role}. Ready to help!`
-        },
-        isSpecialAgent: false
+        description: template.description
       };
 
-      // Add slight delay between agents for better UX
-      setTimeout(() => {
-        onAddAgent(agentData);
-      }, index * 200);
-    });
+      const teamResponse = await fetch('/api/teams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(teamData),
+      });
 
-    onClose();
+      if (!teamResponse.ok) {
+        console.error('Failed to create team');
+        return;
+      }
+
+      const newTeam = await teamResponse.json();
+      console.log('Team created successfully:', newTeam);
+
+      // Then, create all agents and assign them to the new team
+      for (const templateAgent of template.agents) {
+        // Check if agent with this role already exists in this project
+        const existingAgent = existingAgents.find(agent => 
+          agent.role === templateAgent.role && agent.projectId === activeProject.id
+        );
+        if (existingAgent) continue; // Skip if already exists
+
+        const agentData: Omit<Agent, 'id'> = {
+          name: templateAgent.name,
+          role: templateAgent.role,
+          color: templateAgent.color,
+          teamId: newTeam.id, // Assign to the newly created team
+          projectId: activeProject.id,
+          personality: {
+            traits: [],
+            communicationStyle: 'professional',
+            expertise: [],
+            welcomeMessage: `Hi! I'm ${templateAgent.name}, your ${templateAgent.role}. Ready to help ${template.name}!`
+          },
+          isSpecialAgent: false
+        };
+
+        onAddAgent(agentData);
+      }
+
+      console.log(`Team "${template.name}" created with ${template.agents.length} agents`);
+      onClose();
+    } catch (error) {
+      console.error('Error creating team template:', error);
+    }
   };
 
   const handleAddIndividualAgent = (agent: IndividualAgent) => {

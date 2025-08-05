@@ -348,8 +348,8 @@ export default function Home() {
         const newAgent = await response.json();
         console.log('Agent created successfully:', newAgent);
         
-        // Refresh agents data
-        await refetchAgents();
+        // Refresh both agents and teams data (in case agent was added to a new team)
+        await Promise.all([refetchAgents(), refetchTeams()]);
         
         // Optionally set the new agent as active
         setActiveAgentId(newAgent.id);
