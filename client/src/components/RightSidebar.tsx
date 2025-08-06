@@ -85,7 +85,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
     console.log(`Saving ${section} for ${activeView} ${activeProject?.id || activeTeam?.id || activeAgent?.id}`);
     
     // Add section to recently saved set
-    setRecentlySaved(prev => new Set([...prev, section]));
+    setRecentlySaved(prev => new Set(Array.from(prev).concat(section)));
     
     // Show toast notification
     toast({
@@ -113,7 +113,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
               <span className="text-white text-sm">👤</span>
             </div>
-            <h2 className="font-semibold hatchin-text text-[16px]">Agent Profile</h2>
+            <h2 className="font-semibold hatchin-text text-[16px]">Hatch Profile</h2>
           </div>
           <button className="hatchin-text-muted hover:text-hatchin-text">
             <X className="w-4 h-4" />
@@ -122,7 +122,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
         <p className="hatchin-text-muted text-[12px] mb-6">
           Performance and capabilities of {activeAgent?.name}
         </p>
-        
         {/* Agent Overview Card */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <h3 className="text-sm font-medium hatchin-text mb-4">Agent Overview</h3>
@@ -141,7 +140,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
           </div>
         </div>
-
         {/* Performance Metrics Card */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <h3 className="text-sm font-medium hatchin-text mb-4">Performance Metrics</h3>
@@ -160,7 +158,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
           </div>
         </div>
-
         {/* Capabilities Card */}
         <div className="hatchin-bg-card rounded-xl p-4">
           <h3 className="text-sm font-medium hatchin-text mb-4">Capabilities</h3>
@@ -268,10 +265,10 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
         <div className="hatchin-bg-card rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="hatchin-text-muted text-[12px]">
-              Time spent: {activeProject.timeSpent}
+              Time spent: {activeProject?.timeSpent || '0 hours'}
             </span>
             <span className="hatchin-text text-[#1cd979] font-bold text-[12px]">
-              {activeProject.progress}% complete
+              {activeProject?.progress || 0}% complete
             </span>
           </div>
           
@@ -280,7 +277,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               2.5 weeks — 3 working phases
             </div>
             
-            <ProgressTimeline progress={activeProject.progress} />
+            <ProgressTimeline progress={activeProject?.progress || 0} />
           </div>
           
           <div className="text-xs hatchin-text-muted leading-relaxed">
