@@ -296,7 +296,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <textarea 
                 value={coreDirection.whatBuilding}
                 onChange={(e) => setCoreDirection(prev => ({ ...prev, whatBuilding: e.target.value }))}
-                className="w-full bg-transparent hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm"
+                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#21232700]"
                 rows={3}
                 placeholder="Describe the project in one clear sentence."
               />
@@ -307,7 +307,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <textarea 
                 value={coreDirection.whyMatters}
                 onChange={(e) => setCoreDirection(prev => ({ ...prev, whyMatters: e.target.value }))}
-                className="w-full bg-transparent hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm"
+                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#21232700]"
                 rows={3}
                 placeholder="What's the core purpose or motivation?"
               />
@@ -318,7 +318,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <textarea 
                 value={coreDirection.whoFor}
                 onChange={(e) => setCoreDirection(prev => ({ ...prev, whoFor: e.target.value }))}
-                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327]"
+                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#21232700]"
                 rows={3}
                 placeholder="Who's the target audience, customer, or beneficiary?"
               />
@@ -355,7 +355,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <textarea 
               value={executionRules}
               onChange={(e) => setExecutionRules(e.target.value)}
-              className="w-full bg-transparent hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm"
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#21232700]"
               rows={4}
               placeholder="Define team principles, constraints, standards, deadlines, budget limits, and quality requirements that everyone must follow."
             />
@@ -391,7 +391,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <textarea 
               value={teamCulture}
               onChange={(e) => setTeamCulture(e.target.value)}
-              className="w-full bg-transparent hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm"
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#21232700]"
               rows={4}
               placeholder="Define brand voice, communication style, design preferences, cultural values, and how the team should interact with users and each other."
             />
