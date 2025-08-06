@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
 import * as React from "react";
 import { X, Save, ChevronDown, ChevronRight, Check } from "lucide-react";
 import { ProgressTimeline } from "@/components/ProgressTimeline";
 import { useToast } from "@/hooks/use-toast";
+import { useRightSidebarState } from "@/hooks/useRightSidebarState";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface RightSidebarProps {
@@ -13,60 +13,27 @@ interface RightSidebarProps {
 
 export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSidebarProps) {
   const { toast } = useToast();
-  
-  // Initialize with project data when available
-  const [coreDirection, setCoreDirection] = useState({
-    whatBuilding: activeProject?.coreDirection?.whatBuilding || '',
-    whyMatters: activeProject?.coreDirection?.whyMatters || '',
-    whoFor: activeProject?.coreDirection?.whoFor || '',
-  });
-  const [executionRules, setExecutionRules] = useState(activeProject?.executionRules || '');
-  const [teamCulture, setTeamCulture] = useState(activeProject?.teamCulture || '');
+  const { state, actions } = useRightSidebarState(activeProject, activeTeam, activeAgent);
 
-  // Collapsible sections state
-  const [expandedSections, setExpandedSections] = useState({
-    coreDirection: true,
-    targetAudience: false,
-    executionRules: false,
-    brandCulture: false,
-  });
+  const {
+    coreDirection,
+    executionRules,
+    teamCulture,
+    expandedSections,
+    recentlySaved,
+    activeView,
+    isLoading,
+    error,
+  } = state;
 
-  // Track recently saved sections for visual feedback
-  const [recentlySaved, setRecentlySaved] = useState<Set<string>>(new Set());
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  // Update state when activeProject changes
-  React.useEffect(() => {
-    if (activeProject) {
-      setCoreDirection({
-        whatBuilding: activeProject.coreDirection?.whatBuilding || '',
-        whyMatters: activeProject.coreDirection?.whyMatters || '',
-        whoFor: activeProject.coreDirection?.whoFor || '',
-      });
-      setExecutionRules(activeProject.executionRules || '');
-      setTeamCulture(activeProject.teamCulture || '');
-    }
-  }, [activeProject]);
-
-  // Determine which view to show based on selection
-  const getActiveView = () => {
-    if (activeAgent) {
-      return 'agent';
-    } else if (activeTeam) {
-      return 'team';
-    } else if (activeProject) {
-      return 'project';
-    }
-    return 'none';
-  };
-
-  const activeView = getActiveView();
+  // Destructure actions from hook
+  const {
+    updateCoreDirection,
+    updateExecutionRules,
+    updateTeamCulture,
+    toggleSection,
+    setRecentlySaved,
+  } = actions;
 
   if (activeView === 'none') {
     return (
@@ -81,35 +48,83 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
     );
   }
 
-  const handleSave = (section: string) => {
-    console.log(`Saving ${section} for ${activeView} ${activeProject?.id || activeTeam?.id || activeAgent?.id}`);
-    
-    // Add section to recently saved set
-    setRecentlySaved(prev => new Set(Array.from(prev).concat(section)));
-    
-    // Get the correct sidebar name based on active view
-    const getSidebarName = () => {
-      if (activeView === 'agent') return 'Agent Profile';
-      if (activeView === 'team') return 'Team Dashboard';
-      if (activeView === 'project') return 'Project Overview';
-      return 'sidebar';
-    };
-    
-    // Show toast notification
-    toast({
-      title: "Saved successfully",
-      description: `${section.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} has been saved to ${getSidebarName()}.`,
-      duration: 3000,
-    });
-    
-    // Remove from recently saved after 2 seconds for visual feedback
-    setTimeout(() => {
-      setRecentlySaved(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(section);
-        return newSet;
+  // Real save functionality that persists data
+  const handleSave = async (section: string, data: any) => {
+    try {
+      actions.setLoading(true);
+      
+      // Determine what data to save based on section
+      let saveData: any = {};
+      const entityId = activeProject?.id || activeTeam?.id || activeAgent?.id;
+      
+      if (!entityId) {
+        throw new Error('No active entity to save to');
+      }
+
+      switch (section) {
+        case 'core-direction':
+          saveData = {
+            coreDirection: {
+              whatBuilding: coreDirection.whatBuilding,
+              whyMatters: coreDirection.whyMatters,
+              whoFor: coreDirection.whoFor,
+            }
+          };
+          break;
+        case 'execution-rules':
+          saveData = { executionRules: executionRules };
+          break;
+        case 'team-culture':
+          saveData = { teamCulture: teamCulture };
+          break;
+        default:
+          saveData = data;
+      }
+
+      // Make API call to save data
+      const response = await fetch(`/api/projects/${entityId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(saveData),
       });
-    }, 2000);
+
+      if (!response.ok) {
+        throw new Error(`Save failed: ${response.statusText}`);
+      }
+
+      // Mark as recently saved for UI feedback
+      setRecentlySaved(section);
+      
+      // Get the correct sidebar name based on active view
+      const getSidebarName = () => {
+        if (activeView === 'agent') return 'Agent Profile';
+        if (activeView === 'team') return 'Team Dashboard';
+        if (activeView === 'project') return 'Project Overview';
+        return 'sidebar';
+      };
+      
+      // Show success toast
+      toast({
+        title: "Saved successfully",
+        description: `${section.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} has been saved to ${getSidebarName()}.`,
+        duration: 3000,
+      });
+      
+    } catch (error) {
+      console.error('Save error:', error);
+      actions.setError(error instanceof Error ? error.message : 'Save failed');
+      
+      toast({
+        title: "Save failed",
+        description: "Unable to save changes. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      actions.setLoading(false);
+    }
   };
 
   // Agent Profile View
@@ -311,7 +326,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              handleSave('core-direction');
+              handleSave('core-direction', null);
             }}
             className={`text-sm hover:text-opacity-80 transition-all duration-200 flex items-center gap-1 ${
               recentlySaved.has('core-direction') 
@@ -336,7 +351,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <h4 className="text-sm font-medium hatchin-text mb-3">What are you building?</h4>
               <textarea 
                 value={coreDirection.whatBuilding}
-                onChange={(e) => setCoreDirection(prev => ({ ...prev, whatBuilding: e.target.value }))}
+                onChange={(e) => updateCoreDirection('whatBuilding', e.target.value)}
                 className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
                 rows={3}
                 placeholder="Describe the project in one clear sentence."
@@ -347,7 +362,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <h4 className="text-sm font-medium hatchin-text mb-3">Why does this matter?</h4>
               <textarea 
                 value={coreDirection.whyMatters}
-                onChange={(e) => setCoreDirection(prev => ({ ...prev, whyMatters: e.target.value }))}
+                onChange={(e) => updateCoreDirection('whyMatters', e.target.value)}
                 className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
                 rows={3}
                 placeholder="What's the core purpose or motivation?"
@@ -358,7 +373,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <h4 className="text-sm font-medium hatchin-text mb-3">Who is this for?</h4>
               <textarea 
                 value={coreDirection.whoFor}
-                onChange={(e) => setCoreDirection(prev => ({ ...prev, whoFor: e.target.value }))}
+                onChange={(e) => updateCoreDirection('whoFor', e.target.value)}
                 className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
                 rows={3}
                 placeholder="Who's the target audience, customer, or beneficiary?"
@@ -383,7 +398,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              handleSave('execution-rules');
+              handleSave('execution-rules', null);
             }}
             className={`text-sm hover:text-opacity-80 transition-all duration-200 flex items-center gap-1 ${
               recentlySaved.has('execution-rules') 
@@ -406,7 +421,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           <div className="mt-4">
             <textarea 
               value={executionRules}
-              onChange={(e) => setExecutionRules(e.target.value)}
+              onChange={(e) => updateExecutionRules(e.target.value)}
               className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
               rows={4}
               placeholder="Define team principles, constraints, standards, deadlines, budget limits, and quality requirements that everyone must follow."
@@ -430,7 +445,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              handleSave('team-culture');
+              handleSave('team-culture', null);
             }}
             className={`text-sm hover:text-opacity-80 transition-all duration-200 flex items-center gap-1 ${
               recentlySaved.has('team-culture') 
@@ -453,7 +468,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           <div className="mt-4">
             <textarea 
               value={teamCulture}
-              onChange={(e) => setTeamCulture(e.target.value)}
+              onChange={(e) => updateTeamCulture(e.target.value)}
               className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
               rows={4}
               placeholder="Define brand voice, communication style, design preferences, cultural values, and how the team should interact with users and each other."

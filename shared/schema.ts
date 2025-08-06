@@ -206,3 +206,72 @@ export type InsertConversationMemory = z.infer<typeof insertConversationMemorySc
 export type ConversationMemory = typeof conversationMemory.$inferSelect;
 export type InsertTypingIndicator = z.infer<typeof insertTypingIndicatorSchema>;
 export type TypingIndicator = typeof typingIndicators.$inferSelect;
+
+// Right Sidebar Specific Types
+export interface RightSidebarExpandedSections {
+  coreDirection: boolean;
+  targetAudience: boolean;
+  executionRules: boolean;
+  brandCulture: boolean;
+  performance?: boolean;
+  skills?: boolean;
+  activity?: boolean;
+}
+
+export interface RightSidebarUserPreferences {
+  expandedSections: RightSidebarExpandedSections;
+  defaultView: 'project' | 'team' | 'agent';
+  autoSave: boolean;
+  autoSaveDelay: number; // milliseconds
+  showTimestamps: boolean;
+  compactMode: boolean;
+}
+
+export interface RightSidebarState {
+  // Core direction data
+  coreDirection: {
+    whatBuilding: string;
+    whyMatters: string;
+    whoFor: string;
+  };
+  executionRules: string;
+  teamCulture: string;
+  
+  // UI state
+  expandedSections: RightSidebarExpandedSections;
+  recentlySaved: Set<string>;
+  activeView: 'project' | 'team' | 'agent' | 'none';
+  
+  // User preferences
+  preferences: RightSidebarUserPreferences;
+  
+  // Loading and error states
+  isLoading: boolean;
+  error: string | null;
+  lastSaved: Record<string, Date>;
+}
+
+export interface RightSidebarActions {
+  // Data updates
+  updateCoreDirection: (field: keyof RightSidebarState['coreDirection'], value: string) => void;
+  updateExecutionRules: (value: string) => void;
+  updateTeamCulture: (value: string) => void;
+  
+  // UI actions
+  toggleSection: (section: keyof RightSidebarExpandedSections) => void;
+  setRecentlySaved: (section: string) => void;
+  clearRecentlySaved: (section: string) => void;
+  
+  // Persistence actions
+  saveSection: (section: string, data: any) => Promise<void>;
+  saveAllSections: () => Promise<void>;
+  
+  // Preferences
+  updatePreferences: (preferences: Partial<RightSidebarUserPreferences>) => void;
+  resetPreferences: () => void;
+  
+  // State management
+  setActiveView: (view: RightSidebarState['activeView']) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+}
