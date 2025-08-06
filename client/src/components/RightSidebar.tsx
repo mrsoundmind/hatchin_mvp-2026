@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as React from "react";
 import { X, Save } from "lucide-react";
 import { ProgressTimeline } from "@/components/ProgressTimeline";
 import type { Project, Team, Agent } from "@shared/schema";
@@ -10,13 +11,27 @@ interface RightSidebarProps {
 }
 
 export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSidebarProps) {
+  // Initialize with project data when available
   const [coreDirection, setCoreDirection] = useState({
-    whatBuilding: '',
-    whyMatters: '',
-    whoFor: '',
+    whatBuilding: activeProject?.coreDirection?.whatBuilding || '',
+    whyMatters: activeProject?.coreDirection?.whyMatters || '',
+    whoFor: activeProject?.coreDirection?.whoFor || '',
   });
-  const [executionRules, setExecutionRules] = useState('');
-  const [teamCulture, setTeamCulture] = useState('');
+  const [executionRules, setExecutionRules] = useState(activeProject?.executionRules || '');
+  const [teamCulture, setTeamCulture] = useState(activeProject?.teamCulture || '');
+
+  // Update state when activeProject changes
+  React.useEffect(() => {
+    if (activeProject) {
+      setCoreDirection({
+        whatBuilding: activeProject.coreDirection?.whatBuilding || '',
+        whyMatters: activeProject.coreDirection?.whyMatters || '',
+        whoFor: activeProject.coreDirection?.whoFor || '',
+      });
+      setExecutionRules(activeProject.executionRules || '');
+      setTeamCulture(activeProject.teamCulture || '');
+    }
+  }, [activeProject]);
 
   // Determine which view to show based on selection
   const getActiveView = () => {
@@ -117,13 +132,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
   return (
     <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
       <div className="flex items-center justify-between mt-[5px] mb-[5px]">
-        <h2 className="font-semibold hatchin-text text-[16px]">🧠 Project Overview</h2>
+        <h2 className="font-semibold hatchin-text text-[16px]">📖 Project Bible</h2>
         <button className="hatchin-text-muted hover:text-hatchin-text">
           <X className="w-4 h-4" />
         </button>
       </div>
       <p className="hatchin-text-muted text-[12px] mt-[5px] mb-[5px]">
-        A shared brain for your team to stay aligned.
+        Single source of truth for all AI agents and team members.
       </p>
       {/* Project Progress */}
       <div className="mt-[18px] mb-[18px]">
@@ -154,10 +169,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </div>
         </div>
       </div>
-      {/* Core Direction */}
+      {/* Core Direction - Most Important Section */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium hatchin-text">🎯 Core Direction</h3>
+          <div>
+            <h3 className="text-sm font-medium hatchin-text">🎯 Core Direction</h3>
+            <p className="text-xs hatchin-text-muted">Foundation that guides all decisions</p>
+          </div>
           <button 
             onClick={() => handleSave('core-direction')}
             className="hatchin-blue text-sm hover:text-opacity-80 transition-colors flex items-center gap-1"
@@ -194,24 +212,41 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-2 hatchin-text">
-              Who is this for?
-            </label>
-            <textarea 
-              value={coreDirection.whoFor}
-              onChange={(e) => setCoreDirection(prev => ({ ...prev, whoFor: e.target.value }))}
-              className="w-full hatchin-bg-card hatchin-border border rounded-lg px-3 py-2 text-sm hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent" 
-              rows={3}
-              placeholder="Who's the target audience, customer, or beneficiary?"
-            />
-          </div>
+
         </div>
       </div>
+      {/* Target Audience & Market */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-medium hatchin-text">🎯 Target Audience</h3>
+            <p className="text-xs hatchin-text-muted">Who we're building for and why they matter</p>
+          </div>
+          <button 
+            onClick={() => handleSave('target-audience')}
+            className="hatchin-blue text-sm hover:text-opacity-80 transition-colors flex items-center gap-1"
+          >
+            <Save className="w-3 h-3" />
+            Save
+          </button>
+        </div>
+        
+        <textarea 
+          value={coreDirection.whoFor}
+          onChange={(e) => setCoreDirection(prev => ({ ...prev, whoFor: e.target.value }))}
+          className="w-full hatchin-bg-card hatchin-border border rounded-lg px-3 py-2 text-sm hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent" 
+          rows={4}
+          placeholder="Describe your target users: demographics, pain points, goals, behavior patterns, and what success looks like for them."
+        />
+      </div>
+
       {/* Execution Ground Rules */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium hatchin-text">⚡ Execution Ground Rules</h3>
+          <div>
+            <h3 className="text-sm font-medium hatchin-text">⚡ Execution Ground Rules</h3>
+            <p className="text-xs hatchin-text-muted">Non-negotiable principles for the team</p>
+          </div>
           <button 
             onClick={() => handleSave('execution-rules')}
             className="hatchin-blue text-sm hover:text-opacity-80 transition-colors flex items-center gap-1"
@@ -226,13 +261,16 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           onChange={(e) => setExecutionRules(e.target.value)}
           className="w-full hatchin-bg-card hatchin-border border rounded-lg px-3 py-2 text-sm hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent" 
           rows={4}
-          placeholder="Define team principles, constraints, or guidelines"
+          placeholder="Define team principles, constraints, standards, deadlines, budget limits, and quality requirements that everyone must follow."
         />
       </div>
-      {/* Team Culture & Style */}
+      {/* Brand Guidelines & Team Culture */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium hatchin-text">🎨 Team Culture & Style</h3>
+          <div>
+            <h3 className="text-sm font-medium hatchin-text">🎨 Brand Guidelines & Culture</h3>
+            <p className="text-xs hatchin-text-muted">Voice, style, and team communication preferences</p>
+          </div>
           <button 
             onClick={() => handleSave('team-culture')}
             className="hatchin-blue text-sm hover:text-opacity-80 transition-colors flex items-center gap-1"
@@ -247,7 +285,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           onChange={(e) => setTeamCulture(e.target.value)}
           className="w-full hatchin-bg-card hatchin-border border rounded-lg px-3 py-2 text-sm hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent" 
           rows={4}
-          placeholder="Describe communication style, values, or cultural preferences"
+          placeholder="Define brand voice, communication style, design preferences, cultural values, and how the team should interact with users and each other."
         />
       </div>
     </aside>
