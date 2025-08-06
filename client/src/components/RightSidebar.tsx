@@ -318,7 +318,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <textarea 
                 value={coreDirection.whoFor}
                 onChange={(e) => setCoreDirection(prev => ({ ...prev, whoFor: e.target.value }))}
-                className="w-full bg-transparent hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm"
+                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327]"
                 rows={3}
                 placeholder="Who's the target audience, customer, or beneficiary?"
               />
@@ -362,7 +362,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </div>
         )}
       </div>
-
       {/* Brand Guidelines & Team Culture - Collapsible Card */}
       <div className="hatchin-bg-card rounded-xl p-4">
         <div 
