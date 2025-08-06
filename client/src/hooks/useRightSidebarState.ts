@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useReducer } from 'react';
 import type { 
   RightSidebarState, 
   RightSidebarUserPreferences, 
@@ -7,6 +7,102 @@ import type {
   Team,
   Agent
 } from '@shared/schema';
+
+// Action types for the state reducer
+type RightSidebarAction = 
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_ACTIVE_VIEW'; payload: 'project' | 'team' | 'agent' | 'none' }
+  | { type: 'TOGGLE_SECTION'; payload: keyof RightSidebarExpandedSections }
+  | { type: 'UPDATE_CORE_DIRECTION'; payload: Partial<RightSidebarState['coreDirection']> }
+  | { type: 'UPDATE_EXECUTION_RULES'; payload: string }
+  | { type: 'UPDATE_TEAM_CULTURE'; payload: string }
+  | { type: 'SET_RECENTLY_SAVED'; payload: string }
+  | { type: 'CLEAR_RECENTLY_SAVED'; payload: string }
+  | { type: 'UPDATE_PREFERENCES'; payload: Partial<RightSidebarUserPreferences> }
+  | { type: 'UPDATE_LAST_SAVED'; payload: { section: string; timestamp: number } }
+  | { type: 'LOAD_PREFERENCES'; payload: RightSidebarUserPreferences }
+  | { type: 'RESET_STATE' };
+
+// State reducer function
+function rightSidebarReducer(state: RightSidebarState, action: RightSidebarAction): RightSidebarState {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    
+    case 'SET_ACTIVE_VIEW':
+      return { ...state, activeView: action.payload };
+    
+    case 'TOGGLE_SECTION':
+      const newExpandedSections = {
+        ...state.expandedSections,
+        [action.payload]: !state.expandedSections[action.payload]
+      };
+      return {
+        ...state,
+        expandedSections: newExpandedSections,
+        preferences: {
+          ...state.preferences,
+          expandedSections: newExpandedSections
+        }
+      };
+    
+    case 'UPDATE_CORE_DIRECTION':
+      return {
+        ...state,
+        coreDirection: { ...state.coreDirection, ...action.payload }
+      };
+    
+    case 'UPDATE_EXECUTION_RULES':
+      return { ...state, executionRules: action.payload };
+    
+    case 'UPDATE_TEAM_CULTURE':
+      return { ...state, teamCulture: action.payload };
+    
+    case 'SET_RECENTLY_SAVED':
+      const newRecentlySaved = new Set(state.recentlySaved);
+      newRecentlySaved.add(action.payload);
+      return { ...state, recentlySaved: newRecentlySaved };
+    
+    case 'CLEAR_RECENTLY_SAVED':
+      const clearedRecentlySaved = new Set(state.recentlySaved);
+      clearedRecentlySaved.delete(action.payload);
+      return { ...state, recentlySaved: clearedRecentlySaved };
+    
+    case 'UPDATE_PREFERENCES':
+      const updatedPreferences = { ...state.preferences, ...action.payload };
+      return {
+        ...state,
+        preferences: updatedPreferences,
+        expandedSections: updatedPreferences.expandedSections || state.expandedSections
+      };
+    
+    case 'UPDATE_LAST_SAVED':
+      return {
+        ...state,
+        lastSaved: {
+          ...state.lastSaved,
+          [action.payload.section]: new Date(action.payload.timestamp)
+        }
+      };
+    
+    case 'LOAD_PREFERENCES':
+      return {
+        ...state,
+        preferences: { ...defaultPreferences, ...action.payload },
+        expandedSections: { ...defaultPreferences.expandedSections, ...action.payload.expandedSections }
+      };
+    
+    case 'RESET_STATE':
+      return { ...defaultState };
+    
+    default:
+      return state;
+  }
+}
 
 const STORAGE_KEY = 'hatchin_right_sidebar_preferences';
 
@@ -49,7 +145,7 @@ export function useRightSidebarState(
   activeTeam?: Team,
   activeAgent?: Agent
 ) {
-  const [state, setState] = useState<RightSidebarState>(defaultState);
+  const [state, dispatch] = useReducer(rightSidebarReducer, defaultState);
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -57,11 +153,7 @@ export function useRightSidebarState(
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const preferences = JSON.parse(stored) as RightSidebarUserPreferences;
-        setState(prev => ({
-          ...prev,
-          preferences: { ...defaultPreferences, ...preferences },
-          expandedSections: { ...defaultPreferences.expandedSections, ...preferences.expandedSections },
-        }));
+        dispatch({ type: 'LOAD_PREFERENCES', payload: preferences });
       }
     } catch (error) {
       console.warn('Failed to load right sidebar preferences from localStorage:', error);
@@ -88,132 +180,86 @@ export function useRightSidebarState(
       newView = 'project';
     }
 
-    setState(prev => ({ ...prev, activeView: newView }));
+    dispatch({ type: 'SET_ACTIVE_VIEW', payload: newView });
   }, [activeProject, activeTeam, activeAgent]);
 
   // Update project data when activeProject changes
   useEffect(() => {
     if (activeProject) {
-      setState(prev => ({
-        ...prev,
-        coreDirection: {
+      dispatch({ 
+        type: 'UPDATE_CORE_DIRECTION', 
+        payload: {
           whatBuilding: activeProject.coreDirection?.whatBuilding || '',
           whyMatters: activeProject.coreDirection?.whyMatters || '',
           whoFor: activeProject.coreDirection?.whoFor || '',
-        },
-        executionRules: activeProject.executionRules || '',
-        teamCulture: activeProject.teamCulture || '',
-      }));
+        }
+      });
+      dispatch({ type: 'UPDATE_EXECUTION_RULES', payload: activeProject.executionRules || '' });
+      dispatch({ type: 'UPDATE_TEAM_CULTURE', payload: activeProject.teamCulture || '' });
     }
   }, [activeProject]);
 
   // Actions
   const updateCoreDirection = useCallback((field: keyof RightSidebarState['coreDirection'], value: string) => {
-    setState(prev => ({
-      ...prev,
-      coreDirection: {
-        ...prev.coreDirection,
-        [field]: value,
-      },
-    }));
+    dispatch({ 
+      type: 'UPDATE_CORE_DIRECTION', 
+      payload: { [field]: value } 
+    });
   }, []);
 
   const updateExecutionRules = useCallback((value: string) => {
-    setState(prev => ({ ...prev, executionRules: value }));
+    dispatch({ type: 'UPDATE_EXECUTION_RULES', payload: value });
   }, []);
 
   const updateTeamCulture = useCallback((value: string) => {
-    setState(prev => ({ ...prev, teamCulture: value }));
+    dispatch({ type: 'UPDATE_TEAM_CULTURE', payload: value });
   }, []);
 
   const toggleSection = useCallback((section: keyof RightSidebarExpandedSections) => {
-    setState(prev => {
-      const newExpandedSections = {
-        ...prev.expandedSections,
-        [section]: !prev.expandedSections[section],
-      };
-      
-      const newPreferences = {
-        ...prev.preferences,
-        expandedSections: newExpandedSections,
-      };
-
-      // Save to localStorage
-      savePreferences(newPreferences);
-
-      return {
-        ...prev,
-        expandedSections: newExpandedSections,
-        preferences: newPreferences,
-      };
-    });
-  }, [savePreferences]);
+    dispatch({ type: 'TOGGLE_SECTION', payload: section });
+    
+    // Save updated preferences to localStorage
+    // Note: This will be handled by a separate effect that watches for preference changes
+    setTimeout(() => {
+      savePreferences(state.preferences);
+    }, 0);
+  }, [savePreferences, state.preferences]);
 
   const setRecentlySaved = useCallback((section: string) => {
-    setState(prev => ({
-      ...prev,
-      recentlySaved: new Set(Array.from(prev.recentlySaved).concat(section)),
-      lastSaved: {
-        ...prev.lastSaved,
-        [section]: new Date(),
-      },
-    }));
+    dispatch({ type: 'SET_RECENTLY_SAVED', payload: section });
+    dispatch({ type: 'UPDATE_LAST_SAVED', payload: { section, timestamp: Date.now() } });
 
     // Clear the "recently saved" indicator after 3 seconds
     setTimeout(() => {
-      setState(prev => {
-        const newSet = new Set(prev.recentlySaved);
-        newSet.delete(section);
-        return {
-          ...prev,
-          recentlySaved: newSet,
-        };
-      });
+      dispatch({ type: 'CLEAR_RECENTLY_SAVED', payload: section });
     }, 3000);
   }, []);
 
   const clearRecentlySaved = useCallback((section: string) => {
-    setState(prev => {
-      const newSet = new Set(prev.recentlySaved);
-      newSet.delete(section);
-      return {
-        ...prev,
-        recentlySaved: newSet,
-      };
-    });
+    dispatch({ type: 'CLEAR_RECENTLY_SAVED', payload: section });
   }, []);
 
   const updatePreferences = useCallback((newPreferences: Partial<RightSidebarUserPreferences>) => {
-    setState(prev => {
-      const updatedPreferences = { ...prev.preferences, ...newPreferences };
+    dispatch({ type: 'UPDATE_PREFERENCES', payload: newPreferences });
+    
+    // Save to localStorage - use timeout to ensure state has updated
+    setTimeout(() => {
+      const updatedPreferences = { ...state.preferences, ...newPreferences };
       savePreferences(updatedPreferences);
-      
-      return {
-        ...prev,
-        preferences: updatedPreferences,
-        // Update expanded sections if they were changed
-        ...(newPreferences.expandedSections && {
-          expandedSections: { ...prev.expandedSections, ...newPreferences.expandedSections }
-        }),
-      };
-    });
-  }, [savePreferences]);
+    }, 0);
+  }, [savePreferences, state.preferences]);
 
   const resetPreferences = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      preferences: defaultPreferences,
-      expandedSections: defaultPreferences.expandedSections,
-    }));
+    dispatch({ type: 'LOAD_PREFERENCES', payload: defaultPreferences });
     savePreferences(defaultPreferences);
   }, [savePreferences]);
 
   const setLoading = useCallback((loading: boolean) => {
-    setState(prev => ({ ...prev, isLoading: loading }));
+    dispatch({ type: 'SET_LOADING', payload: loading });
   }, []);
 
   const setError = useCallback((error: string | null) => {
-    setState(prev => ({ ...prev, error }));
+    dispatch({ type: 'SET_ERROR', payload: error });
   }, []);
 
   return {
