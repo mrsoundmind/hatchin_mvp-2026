@@ -411,8 +411,14 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           
           <div className="mt-4">
             <textarea
-              className="w-full hatchin-bg-card border border-gray-700 rounded-lg p-3 text-sm hatchin-text resize-none focus:outline-none focus:border-blue-500 transition-colors min-h-[80px]"
-              style={{ height: 'auto' }}
+              ref={(el) => {
+                if (el) {
+                  // Set initial height based on content
+                  el.style.height = 'auto';
+                  el.style.height = el.scrollHeight + 'px';
+                }
+              }}
+              className="w-full hatchin-bg-card border border-gray-700 rounded-lg p-3 text-sm hatchin-text resize-none focus:outline-none focus:border-blue-500 transition-colors min-h-[80px] overflow-hidden"
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement;
                 target.style.height = 'auto';
@@ -750,7 +756,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
                 target.style.height = 'auto';
                 target.style.height = target.scrollHeight + 'px';
               }}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px]"
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px] overflow-hidden"
               style={{ height: 'auto' }}
               placeholder="Describe the project in one clear sentence."
             />
@@ -766,7 +772,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
                 target.style.height = 'auto';
                 target.style.height = target.scrollHeight + 'px';
               }}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px]"
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px] overflow-hidden"
               style={{ height: 'auto' }}
               placeholder="What's the core purpose or motivation?"
             />
@@ -782,7 +788,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
                 target.style.height = 'auto';
                 target.style.height = target.scrollHeight + 'px';
               }}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px]"
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px] overflow-hidden"
               style={{ height: 'auto' }}
               placeholder="Who's the target audience, customer, or beneficiary?"
             />
@@ -834,7 +840,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
                 target.style.height = 'auto';
                 target.style.height = target.scrollHeight + 'px';
               }}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[100px]"
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[100px] overflow-hidden"
               style={{ height: 'auto' }}
               placeholder="Define team principles, constraints, standards, deadlines, budget limits, and quality requirements that everyone must follow."
             />
@@ -886,7 +892,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
                 target.style.height = 'auto';
                 target.style.height = target.scrollHeight + 'px';
               }}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[100px]"
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[100px] overflow-hidden"
               style={{ height: 'auto' }}
               placeholder="Define brand voice, communication style, design preferences, cultural values, and how the team should interact with users and each other."
             />
