@@ -355,7 +355,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <X className="w-4 h-4" />
           </button>
         </div>
-
         {/* Team Overview */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <h3 className="text-sm font-semibold hatchin-text mb-4">Team Overview</h3>
@@ -377,7 +376,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
 
           {/* Team Stats Grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-800/30 rounded-lg p-3">
+            <div className="bg-gray-800/30 rounded-lg p-3 pt-[0px] pb-[0px] pl-[10px] pr-[10px]">
               <div className="text-lg font-bold hatchin-text">3</div>
               <div className="text-xs hatchin-text-muted">Team Members</div>
             </div>
@@ -387,7 +386,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
           </div>
         </div>
-
         {/* Team Goal - Editable */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <div 
@@ -434,7 +432,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
           )}
         </div>
-
         {/* Team Milestones - with collapsible tasks */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <h3 className="text-sm font-semibold hatchin-text mb-4">Team Milestones</h3>
@@ -591,7 +588,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
           </div>
         </div>
-
         {/* Team Members Progress */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <h3 className="text-sm font-semibold hatchin-text mb-4">Member Progress</h3>
@@ -624,7 +620,6 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             ))}
           </div>
         </div>
-
         {/* Team Insights */}
         <div className="hatchin-bg-card rounded-xl p-4">
           <h3 className="text-sm font-semibold hatchin-text mb-4">Team Insights</h3>
