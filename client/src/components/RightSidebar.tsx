@@ -165,10 +165,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
       <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center">
-              <span className="text-white text-sm">👤</span>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
+              <span className="text-white text-sm font-medium">{activeAgent?.name?.charAt(0) || 'A'}</span>
             </div>
-            <h2 className="font-semibold hatchin-text text-[16px]">Hatch Profile</h2>
+            <div>
+              <h2 className="font-semibold hatchin-text text-[16px]">Hatch Profile</h2>
+              <p className="text-xs hatchin-text-muted">{activeAgent?.name}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {isConnected ? (
@@ -176,69 +179,158 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             ) : (
               <WifiOff className="w-4 h-4 text-gray-500" title="Real-time updates disconnected" />
             )}
-            <button className="hatchin-text-muted hover:text-hatchin-text">
+            <button className="hatchin-text-muted hover:text-hatchin-text transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
-        <p className="hatchin-text-muted text-[12px] mb-6">
-          Performance and capabilities of {activeAgent?.name}
-        </p>
-        {/* Agent Overview Card */}
-        <div className="hatchin-bg-card rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-medium hatchin-text mb-4">Agent Overview</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Name</span>
-              <span className="text-sm hatchin-text">{activeAgent?.name}</span>
+        
+        {/* Agent Status Banner */}
+        <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-lg p-3 mb-6 border border-emerald-500/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+              <span className="text-sm hatchin-text font-medium">Active</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Role</span>
-              <span className="text-sm hatchin-text">{activeAgent?.role}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Team</span>
-              <span className="text-sm hatchin-text">{activeAgent?.teamId || 'Individual Agent'}</span>
-            </div>
+            <span className="text-xs hatchin-text-muted">{activeAgent?.role}</span>
           </div>
         </div>
-        {/* Performance Metrics Card */}
+
+        {/* Performance Overview */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium hatchin-text">Performance Metrics</h3>
+            <h3 className="text-sm font-semibold hatchin-text">Performance Overview</h3>
             {isConnected && (
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-green-400">Live</span>
+                <span className="text-xs text-green-400 font-medium">Live</span>
               </div>
             )}
           </div>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Response Time</span>
-              <span className="text-sm hatchin-text">~2.3s avg</span>
+          
+          {/* Performance Score Circle */}
+          <div className="flex items-center justify-center mb-4">
+            <div className="relative w-24 h-24">
+              <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  fill="transparent"
+                  className="text-gray-700"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  fill="transparent"
+                  strokeDasharray={`${2.51 * 85} ${2.51 * 100}`}
+                  className="text-emerald-400"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-xl font-bold hatchin-text">85</div>
+                  <div className="text-xs hatchin-text-muted">Score</div>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Messages</span>
-              <span className="text-sm hatchin-text">{realTimeMetrics.messagesCount > 0 ? `${realTimeMetrics.messagesCount} total` : '127 total'}</span>
+          </div>
+
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <div className="text-lg font-bold hatchin-text">{realTimeMetrics.messagesCount > 0 ? realTimeMetrics.messagesCount : '127'}</div>
+              <div className="text-xs hatchin-text-muted">Messages</div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Task Completions</span>
-              <span className="text-sm text-green-400">{realTimeMetrics.taskCompletions}</span>
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <div className="text-lg font-bold text-green-400">{realTimeMetrics.taskCompletions}</div>
+              <div className="text-xs hatchin-text-muted">Tasks Done</div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Last Active</span>
-              <span className="text-sm hatchin-text">{realTimeMetrics.lastActivity.toLocaleTimeString()}</span>
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <div className="text-lg font-bold hatchin-text">2.3s</div>
+              <div className="text-xs hatchin-text-muted">Avg Response</div>
+            </div>
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <div className="text-lg font-bold text-blue-400">94%</div>
+              <div className="text-xs hatchin-text-muted">Accuracy</div>
             </div>
           </div>
         </div>
-        {/* Capabilities Card */}
+
+        {/* Skills & Expertise */}
+        <div className="hatchin-bg-card rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-semibold hatchin-text mb-4">Skills & Expertise</h3>
+          <div className="space-y-3">
+            {/* Skill bars */}
+            {[
+              { skill: 'Communication', level: 92, color: 'bg-blue-400' },
+              { skill: 'Problem Solving', level: 88, color: 'bg-emerald-400' },
+              { skill: 'Technical Knowledge', level: 85, color: 'bg-purple-400' },
+              { skill: 'Collaboration', level: 90, color: 'bg-yellow-400' }
+            ].map((item, index) => (
+              <div key={index}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs hatchin-text-muted">{item.skill}</span>
+                  <span className="text-xs hatchin-text">{item.level}%</span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className={`${item.color} h-2 rounded-full transition-all duration-1000`}
+                    style={{ width: `${item.level}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="hatchin-bg-card rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-semibold hatchin-text mb-4">Recent Activity</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-xs hatchin-text">Completed design review</p>
+                <p className="text-xs hatchin-text-muted">{realTimeMetrics.lastActivity.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-xs hatchin-text">Sent progress update</p>
+                <p className="text-xs hatchin-text-muted">2 hours ago</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              <div className="flex-1">
+                <p className="text-xs hatchin-text">Joined team discussion</p>
+                <p className="text-xs hatchin-text-muted">5 hours ago</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Development Insights */}
         <div className="hatchin-bg-card rounded-xl p-4">
-          <h3 className="text-sm font-medium hatchin-text mb-4">Capabilities</h3>
-          <div className="text-xs hatchin-text-muted leading-relaxed">
-            Agent specializes in {activeAgent?.role.toLowerCase()} tasks with expertise in project collaboration, 
-            technical analysis, and strategic planning. Performance analytics and conversation insights 
-            will be enhanced as the agent gains more experience.
+          <h3 className="text-sm font-semibold hatchin-text mb-4">Development Insights</h3>
+          <div className="text-xs hatchin-text-muted leading-relaxed mb-3">
+            {activeAgent?.name} excels in {activeAgent?.role.toLowerCase()} tasks with strong analytical thinking 
+            and clear communication. Recent performance shows consistent improvement in problem-solving speed.
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {['Strategic', 'Analytical', 'Collaborative', 'Detail-oriented'].map((trait, index) => (
+              <span key={index} className="px-2 py-1 bg-gray-700/50 rounded text-xs hatchin-text-muted">
+                {trait}
+              </span>
+            ))}
           </div>
         </div>
       </aside>
@@ -251,10 +343,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
       <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-              <span className="text-white text-sm">👥</span>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+              <span className="text-white text-sm font-medium">{activeTeam?.emoji || '👥'}</span>
             </div>
-            <h2 className="font-semibold hatchin-text text-[16px]">Team Dashboard</h2>
+            <div>
+              <h2 className="font-semibold hatchin-text text-[16px]">Team Dashboard</h2>
+              <p className="text-xs hatchin-text-muted">{activeTeam?.name}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {isConnected ? (
@@ -262,72 +357,153 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             ) : (
               <WifiOff className="w-4 h-4 text-gray-500" title="Real-time updates disconnected" />
             )}
-            <button className="hatchin-text-muted hover:text-hatchin-text">
+            <button className="hatchin-text-muted hover:text-hatchin-text transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
-        <p className="hatchin-text-muted text-[12px] mb-6">
-          Performance and collaboration metrics for {activeTeam?.name}
-        </p>
         
-        {/* Team Overview Card */}
-        <div className="hatchin-bg-card rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-medium hatchin-text mb-4">Team Overview</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Team Name</span>
-              <span className="text-sm hatchin-text">{activeTeam?.name}</span>
+        {/* Team Status Banner */}
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg p-3 mb-6 border border-blue-500/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm hatchin-text font-medium">Active Team</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Members</span>
-              <span className="text-sm hatchin-text">3 agents</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Status</span>
-              <span className="text-sm text-green-400">Active</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs hatchin-text-muted">{realTimeMetrics.activeParticipants.length > 0 ? realTimeMetrics.activeParticipants.length : '3'} members online</span>
             </div>
           </div>
         </div>
 
-        {/* Collaboration Metrics Card */}
+        {/* Team Performance Overview */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium hatchin-text">Collaboration Metrics</h3>
+            <h3 className="text-sm font-semibold hatchin-text">Performance Overview</h3>
             {isConnected && (
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-xs text-green-400">Live</span>
+                <span className="text-xs text-green-400 font-medium">Live</span>
               </div>
             )}
           </div>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Messages</span>
-              <span className="text-sm hatchin-text">{realTimeMetrics.messagesCount > 0 ? `${realTimeMetrics.messagesCount} today` : '45 today'}</span>
+          
+          {/* Performance Metrics Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-lg p-3 border border-blue-500/20">
+              <div className="text-xl font-bold hatchin-text">{realTimeMetrics.messagesCount > 0 ? realTimeMetrics.messagesCount : '45'}</div>
+              <div className="text-xs hatchin-text-muted">Messages Today</div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Active Members</span>
-              <span className="text-sm text-green-400">{realTimeMetrics.activeParticipants.length}</span>
+            <div className="bg-gradient-to-br from-green-500/10 to-green-500/5 rounded-lg p-3 border border-green-500/20">
+              <div className="text-xl font-bold text-green-400">{realTimeMetrics.taskCompletions}</div>
+              <div className="text-xs hatchin-text-muted">Tasks Complete</div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Tasks Complete</span>
-              <span className="text-sm text-green-400">{realTimeMetrics.taskCompletions}</span>
+          </div>
+
+          {/* Team Health Score */}
+          <div className="bg-gray-800/30 rounded-lg p-3">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm hatchin-text">Team Health</span>
+              <span className="text-sm font-semibold text-green-400">92%</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Last Activity</span>
-              <span className="text-sm hatchin-text">{realTimeMetrics.lastActivity.toLocaleTimeString()}</span>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div className="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full transition-all duration-1000" style={{ width: '92%' }}></div>
             </div>
           </div>
         </div>
 
-        {/* Team Insights Card */}
+        {/* Team Members */}
+        <div className="hatchin-bg-card rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-semibold hatchin-text mb-4">Team Members</h3>
+          <div className="space-y-3">
+            {[
+              { name: 'Product Designer', role: 'Design Lead', status: 'active', performance: 94 },
+              { name: 'UI Engineer', role: 'Frontend Dev', status: 'active', performance: 88 },
+              { name: 'UX Researcher', role: 'Research', status: 'away', performance: 91 }
+            ].map((member, index) => (
+              <div key={index} className="flex items-center justify-between p-2 bg-gray-800/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center">
+                    <span className="text-xs text-white font-medium">{member.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs hatchin-text font-medium">{member.name}</p>
+                    <p className="text-xs hatchin-text-muted">{member.role}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs hatchin-text">{member.performance}%</span>
+                  <div className={`w-2 h-2 rounded-full ${member.status === 'active' ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Collaboration Insights */}
+        <div className="hatchin-bg-card rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-semibold hatchin-text mb-4">Collaboration Insights</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-xs hatchin-text-muted">Avg Response Time</span>
+              <span className="text-xs hatchin-text">1.8s</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs hatchin-text-muted">Sync Rate</span>
+              <span className="text-xs text-green-400">92%</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs hatchin-text-muted">Cross-team Collab</span>
+              <span className="text-xs text-blue-400">High</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs hatchin-text-muted">Last Activity</span>
+              <span className="text-xs hatchin-text">{realTimeMetrics.lastActivity.toLocaleTimeString()}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Team Activity */}
+        <div className="hatchin-bg-card rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-semibold hatchin-text mb-4">Recent Activity</h3>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 bg-green-400 rounded-full mt-1.5"></div>
+              <div className="flex-1">
+                <p className="text-xs hatchin-text">Design review completed</p>
+                <p className="text-xs hatchin-text-muted">Team collaboration • 2h ago</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 bg-blue-400 rounded-full mt-1.5"></div>
+              <div className="flex-1">
+                <p className="text-xs hatchin-text">Sprint planning session</p>
+                <p className="text-xs hatchin-text-muted">All members participated • 4h ago</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-2 h-2 bg-purple-400 rounded-full mt-1.5"></div>
+              <div className="flex-1">
+                <p className="text-xs hatchin-text">Feature prototype shared</p>
+                <p className="text-xs hatchin-text-muted">Cross-team feedback • 6h ago</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Team Analytics */}
         <div className="hatchin-bg-card rounded-xl p-4">
-          <h3 className="text-sm font-medium hatchin-text mb-4">Team Insights</h3>
-          <div className="text-xs hatchin-text-muted leading-relaxed">
-            {activeTeam?.name} is performing well with strong collaboration patterns. 
-            Team members are actively engaged and response times are optimal. 
-            Advanced analytics and performance insights will be available as more data is collected.
+          <h3 className="text-sm font-semibold hatchin-text mb-4">Team Analytics</h3>
+          <div className="text-xs hatchin-text-muted leading-relaxed mb-3">
+            {activeTeam?.name} shows excellent collaboration patterns with consistent high-quality output. 
+            Team dynamics are strong with balanced participation from all members.
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {['High Collaboration', 'Fast Response', 'Quality Focus', 'Innovation'].map((strength, index) => (
+              <span key={index} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs border border-blue-500/30">
+                {strength}
+              </span>
+            ))}
           </div>
         </div>
       </aside>
