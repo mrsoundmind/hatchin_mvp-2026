@@ -411,8 +411,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           
           <div className="mt-4">
             <textarea
-              className="w-full hatchin-bg-card border border-gray-700 rounded-lg p-3 text-sm hatchin-text resize-none focus:outline-none focus:border-blue-500 transition-colors"
-              rows={3}
+              className="w-full hatchin-bg-card border border-gray-700 rounded-lg p-3 text-sm hatchin-text resize-none focus:outline-none focus:border-blue-500 transition-colors min-h-[80px]"
+              style={{ height: 'auto' }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = target.scrollHeight + 'px';
+              }}
               defaultValue="Complete the SaaS MVP with core features including user authentication, dashboard interface, and payment integration by end of Q2 2025."
               placeholder="Enter team goal..."
             />
@@ -740,8 +745,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <textarea 
               value={coreDirection.whatBuilding}
               onChange={(e) => updateCoreDirection('whatBuilding', e.target.value)}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-              rows={3}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = target.scrollHeight + 'px';
+              }}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px]"
+              style={{ height: 'auto' }}
               placeholder="Describe the project in one clear sentence."
             />
           </div>
@@ -751,8 +761,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <textarea 
               value={coreDirection.whyMatters}
               onChange={(e) => updateCoreDirection('whyMatters', e.target.value)}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-              rows={3}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = target.scrollHeight + 'px';
+              }}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px]"
+              style={{ height: 'auto' }}
               placeholder="What's the core purpose or motivation?"
             />
           </div>
@@ -762,8 +777,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <textarea 
               value={coreDirection.whoFor}
               onChange={(e) => updateCoreDirection('whoFor', e.target.value)}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-              rows={3}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = target.scrollHeight + 'px';
+              }}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[80px]"
+              style={{ height: 'auto' }}
               placeholder="Who's the target audience, customer, or beneficiary?"
             />
           </div>
@@ -809,8 +829,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <textarea 
               value={executionRules}
               onChange={(e) => updateExecutionRules(e.target.value)}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-              rows={4}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = target.scrollHeight + 'px';
+              }}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[100px]"
+              style={{ height: 'auto' }}
               placeholder="Define team principles, constraints, standards, deadlines, budget limits, and quality requirements that everyone must follow."
             />
           </div>
@@ -856,8 +881,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             <textarea 
               value={teamCulture}
               onChange={(e) => updateTeamCulture(e.target.value)}
-              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-              rows={4}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = target.scrollHeight + 'px';
+              }}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3 min-h-[100px]"
+              style={{ height: 'auto' }}
               placeholder="Define brand voice, communication style, design preferences, cultural values, and how the team should interact with users and each other."
             />
           </div>
