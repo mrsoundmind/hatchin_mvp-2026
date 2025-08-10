@@ -386,24 +386,12 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
           </div>
         </div>
-        {/* Team Goal - Editable */}
+        {/* Team Goal - Always Visible */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
-          <div 
-            className="flex items-center justify-between cursor-pointer"
-            onClick={() => toggleSection('teamGoal')}
-          >
-            <div className="flex items-center gap-2">
-              {expandedSections.teamGoal ? 
-                <ChevronDown className="w-4 h-4 hatchin-text-muted" /> : 
-                <ChevronRight className="w-4 h-4 hatchin-text-muted" />
-              }
-              <h3 className="text-sm font-semibold hatchin-text">Team Goal</h3>
-            </div>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold hatchin-text">Team Goal</h3>
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSave('team-goal', null);
-              }}
+              onClick={() => handleSave('team-goal', null)}
               className={`text-sm hover:text-opacity-80 transition-all duration-200 flex items-center gap-1 ${
                 recentlySaved.has('team-goal') 
                   ? 'text-green-400' 
@@ -421,16 +409,14 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </button>
           </div>
           
-          {expandedSections.teamGoal && (
-            <div className="mt-4">
-              <textarea
-                className="w-full hatchin-bg-card border border-gray-700 rounded-lg p-3 text-sm hatchin-text resize-none focus:outline-none focus:border-blue-500 transition-colors"
-                rows={3}
-                defaultValue="Complete the SaaS MVP with core features including user authentication, dashboard interface, and payment integration by end of Q2 2025."
-                placeholder="Enter team goal..."
-              />
-            </div>
-          )}
+          <div className="mt-4">
+            <textarea
+              className="w-full hatchin-bg-card border border-gray-700 rounded-lg p-3 text-sm hatchin-text resize-none focus:outline-none focus:border-blue-500 transition-colors"
+              rows={3}
+              defaultValue="Complete the SaaS MVP with core features including user authentication, dashboard interface, and payment integration by end of Q2 2025."
+              placeholder="Enter team goal..."
+            />
+          </div>
         </div>
         {/* Team Milestones - with collapsible tasks */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
@@ -725,24 +711,12 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </div>
         </div>
       </div>
-      {/* Core Direction - Collapsible Card */}
+      {/* Core Direction - Always Visible */}
       <div className="hatchin-bg-card rounded-xl p-4 mb-4">
-        <div 
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => toggleSection('coreDirection')}
-        >
-          <div className="flex items-center gap-2">
-            {expandedSections.coreDirection ? 
-              <ChevronDown className="w-4 h-4 hatchin-text-muted" /> : 
-              <ChevronRight className="w-4 h-4 hatchin-text-muted" />
-            }
-            <h3 className="text-sm font-medium hatchin-text">Core Direction</h3>
-          </div>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium hatchin-text">Core Direction</h3>
           <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave('core-direction', null);
-            }}
+            onClick={() => handleSave('core-direction', null)}
             className={`text-sm hover:text-opacity-80 transition-all duration-200 flex items-center gap-1 ${
               recentlySaved.has('core-direction') 
                 ? 'text-green-400' 
@@ -760,42 +734,40 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </button>
         </div>
         
-        {expandedSections.coreDirection && (
-          <div className="mt-4 space-y-6">
-            <div>
-              <h4 className="text-sm font-medium hatchin-text mb-3">What are you building?</h4>
-              <textarea 
-                value={coreDirection.whatBuilding}
-                onChange={(e) => updateCoreDirection('whatBuilding', e.target.value)}
-                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-                rows={3}
-                placeholder="Describe the project in one clear sentence."
-              />
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium hatchin-text mb-3">Why does this matter?</h4>
-              <textarea 
-                value={coreDirection.whyMatters}
-                onChange={(e) => updateCoreDirection('whyMatters', e.target.value)}
-                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-                rows={3}
-                placeholder="What's the core purpose or motivation?"
-              />
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium hatchin-text mb-3">Who is this for?</h4>
-              <textarea 
-                value={coreDirection.whoFor}
-                onChange={(e) => updateCoreDirection('whoFor', e.target.value)}
-                className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
-                rows={3}
-                placeholder="Who's the target audience, customer, or beneficiary?"
-              />
-            </div>
+        <div className="mt-4 space-y-6">
+          <div>
+            <h4 className="text-sm font-medium hatchin-text mb-3">What are you building?</h4>
+            <textarea 
+              value={coreDirection.whatBuilding}
+              onChange={(e) => updateCoreDirection('whatBuilding', e.target.value)}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
+              rows={3}
+              placeholder="Describe the project in one clear sentence."
+            />
           </div>
-        )}
+          
+          <div>
+            <h4 className="text-sm font-medium hatchin-text mb-3">Why does this matter?</h4>
+            <textarea 
+              value={coreDirection.whyMatters}
+              onChange={(e) => updateCoreDirection('whyMatters', e.target.value)}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
+              rows={3}
+              placeholder="What's the core purpose or motivation?"
+            />
+          </div>
+
+          <div>
+            <h4 className="text-sm font-medium hatchin-text mb-3">Who is this for?</h4>
+            <textarea 
+              value={coreDirection.whoFor}
+              onChange={(e) => updateCoreDirection('whoFor', e.target.value)}
+              className="w-full hatchin-text placeholder-hatchin-text-muted resize-none focus:outline-none text-sm bg-[#212327] rounded-lg p-3"
+              rows={3}
+              placeholder="Who's the target audience, customer, or beneficiary?"
+            />
+          </div>
+        </div>
       </div>
       {/* Execution Ground Rules - Collapsible Card */}
       <div className="hatchin-bg-card rounded-xl p-4 mb-4">
