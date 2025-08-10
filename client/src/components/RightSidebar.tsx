@@ -1,8 +1,9 @@
 import * as React from "react";
-import { X, Save, ChevronDown, ChevronRight, Check } from "lucide-react";
+import { X, Save, ChevronDown, ChevronRight, Check, Wifi, WifiOff } from "lucide-react";
 import { ProgressTimeline } from "@/components/ProgressTimeline";
 import { useToast } from "@/hooks/use-toast";
 import { useRightSidebarState } from "@/hooks/useRightSidebarState";
+import { useRealTimeUpdates } from "@/hooks/useRealTimeUpdates";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface RightSidebarProps {
@@ -14,6 +15,37 @@ interface RightSidebarProps {
 export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSidebarProps) {
   const { toast } = useToast();
   const { state, actions } = useRightSidebarState(activeProject, activeTeam, activeAgent);
+
+  // Real-time updates for sidebar data
+  const [realTimeProgress, setRealTimeProgress] = React.useState(0);
+  const [realTimeTimeline, setRealTimeTimeline] = React.useState<Array<any>>([]);
+  const [realTimeMetrics, setRealTimeMetrics] = React.useState({
+    messagesCount: 0,
+    lastActivity: new Date(),
+    activeParticipants: [] as string[],
+    taskCompletions: 0,
+    milestoneReaches: 0,
+  });
+
+  // Set up real-time updates
+  const { connectionStatus, isConnected } = useRealTimeUpdates({
+    activeProject,
+    activeTeam,
+    activeAgent,
+    onMetricsUpdate: (metrics) => {
+      setRealTimeMetrics(metrics);
+      console.log('📊 Right sidebar metrics updated:', metrics);
+    },
+    onProgressUpdate: (progressDelta) => {
+      setRealTimeProgress(prev => Math.min(100, prev + progressDelta));
+      console.log('📈 Progress updated by:', progressDelta);
+    },
+    onTimelineUpdate: (event) => {
+      setRealTimeTimeline(prev => [event, ...prev].slice(0, 10)); // Keep last 10 events
+      console.log('📅 Timeline updated:', event);
+    },
+    debounceMs: 500
+  });
 
   const {
     coreDirection,
@@ -138,9 +170,16 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
             <h2 className="font-semibold hatchin-text text-[16px]">Hatch Profile</h2>
           </div>
-          <button className="hatchin-text-muted hover:text-hatchin-text">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {isConnected ? (
+              <Wifi className="w-4 h-4 text-green-400" title="Real-time updates connected" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-gray-500" title="Real-time updates disconnected" />
+            )}
+            <button className="hatchin-text-muted hover:text-hatchin-text">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <p className="hatchin-text-muted text-[12px] mb-6">
           Performance and capabilities of {activeAgent?.name}
@@ -165,7 +204,15 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
         </div>
         {/* Performance Metrics Card */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-medium hatchin-text mb-4">Performance Metrics</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium hatchin-text">Performance Metrics</h3>
+            {isConnected && (
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400">Live</span>
+              </div>
+            )}
+          </div>
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-sm hatchin-text-muted">Response Time</span>
@@ -173,11 +220,15 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
             <div className="flex justify-between">
               <span className="text-sm hatchin-text-muted">Messages</span>
-              <span className="text-sm hatchin-text">127 total</span>
+              <span className="text-sm hatchin-text">{realTimeMetrics.messagesCount > 0 ? `${realTimeMetrics.messagesCount} total` : '127 total'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Accuracy</span>
-              <span className="text-sm text-green-400">94%</span>
+              <span className="text-sm hatchin-text-muted">Task Completions</span>
+              <span className="text-sm text-green-400">{realTimeMetrics.taskCompletions}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm hatchin-text-muted">Last Active</span>
+              <span className="text-sm hatchin-text">{realTimeMetrics.lastActivity.toLocaleTimeString()}</span>
             </div>
           </div>
         </div>
@@ -205,9 +256,16 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
             <h2 className="font-semibold hatchin-text text-[16px]">Team Dashboard</h2>
           </div>
-          <button className="hatchin-text-muted hover:text-hatchin-text">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {isConnected ? (
+              <Wifi className="w-4 h-4 text-green-400" title="Real-time updates connected" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-gray-500" title="Real-time updates disconnected" />
+            )}
+            <button className="hatchin-text-muted hover:text-hatchin-text">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <p className="hatchin-text-muted text-[12px] mb-6">
           Performance and collaboration metrics for {activeTeam?.name}
@@ -234,19 +292,31 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
 
         {/* Collaboration Metrics Card */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-medium hatchin-text mb-4">Collaboration Metrics</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium hatchin-text">Collaboration Metrics</h3>
+            {isConnected && (
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-400">Live</span>
+              </div>
+            )}
+          </div>
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-sm hatchin-text-muted">Messages</span>
-              <span className="text-sm hatchin-text">45 today</span>
+              <span className="text-sm hatchin-text">{realTimeMetrics.messagesCount > 0 ? `${realTimeMetrics.messagesCount} today` : '45 today'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Avg Response</span>
-              <span className="text-sm hatchin-text">~1.8s</span>
+              <span className="text-sm hatchin-text-muted">Active Members</span>
+              <span className="text-sm text-green-400">{realTimeMetrics.activeParticipants.length}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm hatchin-text-muted">Sync Rate</span>
-              <span className="text-sm text-green-400">92%</span>
+              <span className="text-sm hatchin-text-muted">Tasks Complete</span>
+              <span className="text-sm text-green-400">{realTimeMetrics.taskCompletions}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm hatchin-text-muted">Last Activity</span>
+              <span className="text-sm hatchin-text">{realTimeMetrics.lastActivity.toLocaleTimeString()}</span>
             </div>
           </div>
         </div>
@@ -274,16 +344,31 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </div>
           <h2 className="font-semibold hatchin-text text-[16px]">Project Overview</h2>
         </div>
-        <button className="hatchin-text-muted hover:text-hatchin-text">
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {isConnected ? (
+            <Wifi className="w-4 h-4 text-green-400" title="Real-time updates connected" />
+          ) : (
+            <WifiOff className="w-4 h-4 text-gray-500" title="Real-time updates disconnected" />
+          )}
+          <button className="hatchin-text-muted hover:text-hatchin-text">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       <p className="hatchin-text-muted text-[12px] mb-6">
         A shared brain for your team to stay aligned.
       </p>
       {/* Project Progress */}
       <div className="mt-[18px] mb-[18px]">
-        <h3 className="text-sm font-medium hatchin-text mt-[3px] mb-[3px]">Project Progress</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium hatchin-text">Project Progress</h3>
+          {isConnected && realTimeProgress > 0 && (
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-400">Live</span>
+            </div>
+          )}
+        </div>
         
         <div className="hatchin-bg-card rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
@@ -291,16 +376,22 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               Time spent: {activeProject?.timeSpent || '0 hours'}
             </span>
             <span className="hatchin-text text-[#1cd979] font-bold text-[12px]">
-              {activeProject?.progress || 0}% complete
+              {Math.min(100, (activeProject?.progress || 0) + realTimeProgress)}% complete
             </span>
           </div>
           
           <div className="mb-4">
-            <div className="hatchin-text-muted mb-2 text-[12px]">
-              2.5 weeks — 3 working phases
+            <div className="hatchin-text-muted mb-2 text-[12px] flex justify-between">
+              <span>2.5 weeks — 3 working phases</span>
+              {realTimeMetrics.taskCompletions > 0 && (
+                <span className="text-green-400">+{realTimeMetrics.taskCompletions} tasks</span>
+              )}
             </div>
             
-            <ProgressTimeline progress={activeProject?.progress || 0} />
+            <ProgressTimeline 
+              progress={Math.min(100, (activeProject?.progress || 0) + realTimeProgress)}
+              recentEvents={realTimeTimeline.slice(0, 5)}
+            />
           </div>
           
           <div className="text-xs hatchin-text-muted leading-relaxed">

@@ -507,6 +507,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: savedUserMessage,
               conversationId: data.conversationId
             });
+            
+            // Send real-time metrics update - extract project/team context from conversation
+            const conversationParts = data.conversationId.split('-');
+            const contextType = conversationParts[0]; // 'project', 'team', or 'agent'
+            const contextId = conversationParts.slice(1).join('-');
+            
+            broadcastToConversation(data.conversationId, {
+              type: 'chat_message',
+              projectId: contextType === 'project' ? contextId : undefined,
+              teamId: contextType === 'team' ? contextId : undefined,
+              agentId: savedUserMessage.agentId,
+              conversationId: data.conversationId,
+              data: {
+                content: savedUserMessage.content,
+                senderId: savedUserMessage.agentId || savedUserMessage.userId || 'user',
+                messageId: savedUserMessage.id
+              },
+              timestamp: new Date().toISOString()
+            });
 
             // Start streaming AI response
             console.log('🚀 Starting streaming response...');
@@ -795,6 +814,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'new_message',
             message: savedResponse,
             conversationId
+          });
+
+          // Send real-time metrics update for AI agent response
+          const conversationParts = conversationId.split('-');
+          const contextType = conversationParts[0];
+          const contextId = conversationParts.slice(1).join('-');
+          
+          broadcastToConversation(conversationId, {
+            type: 'chat_message',
+            projectId: contextType === 'project' ? contextId : undefined,
+            teamId: contextType === 'team' ? contextId : undefined,
+            agentId: savedResponse.agentId,
+            conversationId,
+            data: {
+              content: accumulatedContent,
+              senderId: savedResponse.agentId || 'agent',
+              messageId: savedResponse.id
+            },
+            timestamp: new Date().toISOString()
           });
         }
       } finally {
