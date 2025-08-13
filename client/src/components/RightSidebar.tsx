@@ -447,7 +447,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
                   <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
                   <span className="text-sm font-medium hatchin-text">Strategy Phase</span>
                 </div>
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs border border-green-500/30">
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded border border-green-500/30 text-left text-[12px] pl-[2px] pr-[2px]">
                   On Track
                 </span>
               </div>
