@@ -1,9 +1,10 @@
 import * as React from "react";
-import { X, Save, ChevronDown, ChevronRight, Check, Wifi, WifiOff } from "lucide-react";
+import { X, Save, ChevronDown, ChevronRight, Check, Wifi, WifiOff, Target } from "lucide-react";
 import { ProgressTimeline } from "@/components/ProgressTimeline";
 import { useToast } from "@/hooks/use-toast";
 import { useRightSidebarState } from "@/hooks/useRightSidebarState";
 import { useRealTimeUpdates } from "@/hooks/useRealTimeUpdates";
+import TaskManager from "./TaskManager";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface RightSidebarProps {
@@ -15,6 +16,9 @@ interface RightSidebarProps {
 export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSidebarProps) {
   const { toast } = useToast();
   const { state, actions } = useRightSidebarState(activeProject, activeTeam, activeAgent);
+  
+  // Local state for view switching
+  const [currentView, setCurrentView] = React.useState<'overview' | 'tasks'>('overview');
 
   // Real-time updates for sidebar data
   const [realTimeProgress, setRealTimeProgress] = React.useState(0);
@@ -656,7 +660,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
     );
   }
 
-  // Project Overview View (redesigned to match screenshot)
+  // Project Overview View with Task Manager
   return (
     <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
@@ -664,7 +668,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
             <span className="text-white text-sm">🧠</span>
           </div>
-          <h2 className="font-semibold hatchin-text text-[16px]">Project Overview</h2>
+          <h2 className="font-semibold hatchin-text text-[16px]">Project Brain</h2>
         </div>
         <div className="flex items-center gap-2">
           {isConnected ? (
@@ -677,9 +681,47 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </button>
         </div>
       </div>
-      <p className="hatchin-text-muted text-[12px] mb-6">
-        A shared brain for your team to stay aligned.
-      </p>
+      
+      {/* Tab Navigation */}
+      <div className="flex mb-4 bg-gray-800/30 rounded-lg p-1">
+        <button
+          onClick={() => setCurrentView('overview')}
+          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            currentView === 'overview'
+              ? 'bg-blue-500 text-white'
+              : 'hatchin-text-muted hover:hatchin-text'
+          }`}
+          data-testid="tab-overview"
+        >
+          🧠 Overview
+        </button>
+        <button
+          onClick={() => setCurrentView('tasks')}
+          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            currentView === 'tasks'
+              ? 'bg-blue-500 text-white'
+              : 'hatchin-text-muted hover:hatchin-text'
+          }`}
+          data-testid="tab-tasks"
+        >
+          <Target className="w-4 h-4" />
+          Tasks
+        </button>
+      </div>
+
+      {/* Content based on current view */}
+      {currentView === 'tasks' ? (
+        <TaskManager 
+          projectId={activeProject?.id || ''}
+          teamId={activeTeam?.id}
+          agentId={activeAgent?.id}
+          isConnected={isConnected}
+        />
+      ) : (
+        <>
+          <p className="hatchin-text-muted text-[12px] mb-6">
+            A shared brain for your team to stay aligned.
+          </p>
       {/* Project Progress */}
       <div className="mt-[18px] mb-[18px]">
         <div className="flex items-center justify-between mb-3">
@@ -899,6 +941,8 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </div>
         )}
       </div>
+        </>
+      )}
     </aside>
   );
 }
