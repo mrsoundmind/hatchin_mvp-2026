@@ -400,9 +400,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                     key={task.id}
                     draggable={section.id !== 'completed'}
                     onDragStart={(e) => handleDragStart(e, task.id)}
-                    className={`group bg-gray-800/40 rounded-lg p-4 hover:bg-gray-800/60 transition-all ${
-                      section.id !== 'completed' ? 'cursor-move' : 'cursor-default'
-                    }`}
+                    className="group rounded-lg p-4 hover:bg-gray-800/60 transition-all cursor-move bg-[#33373d]"
                     data-testid={`task-${task.id}`}
                   >
                     <div className="flex items-start gap-4">
