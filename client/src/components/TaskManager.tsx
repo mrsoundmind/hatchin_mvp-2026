@@ -632,26 +632,26 @@ const TaskManager: React.FC<TaskManagerProps> = ({
           <Plus className="w-5 h-5" />
         </button>
       </div>
-      {/* Quick Stats - Only Total and Done */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="hatchin-bg-panel rounded-lg p-2.5 text-center">
-          <div className="text-lg font-semibold hatchin-text">{getTotalTasks()}</div>
+      {/* Quick Stats - Compact */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="hatchin-bg-panel rounded-md p-2 text-center">
+          <div className="text-sm font-semibold hatchin-text">{getTotalTasks()}</div>
           <div className="text-xs hatchin-text-muted">Total</div>
         </div>
-        <div className="hatchin-bg-panel rounded-lg p-2.5 text-center">
-          <div className="text-lg font-semibold text-green-400">{getCompletedTasks()}</div>
+        <div className="hatchin-bg-panel rounded-md p-2 text-center">
+          <div className="text-sm font-semibold text-green-400">{getCompletedTasks()}</div>
           <div className="text-xs hatchin-text-muted">Done</div>
         </div>
       </div>
       {/* New Task Form */}
       {showNewTaskForm && (
-        <div className="mb-6 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
+        <div className="mb-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700">
           <input
             type="text"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             placeholder="What needs to be done?"
-            className="w-full bg-transparent border-none outline-none hatchin-text text-sm mb-3"
+            className="w-full bg-transparent border-none outline-none hatchin-text text-sm mb-2"
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 addNewTask();
@@ -686,9 +686,9 @@ const TaskManager: React.FC<TaskManagerProps> = ({
         </div>
       )}
       {/* Task Sections */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {sections.map((section) => (
-          <div key={section.id} className="space-y-3">
+          <div key={section.id} className="space-y-2">
             <div
               className="flex items-center justify-between cursor-pointer group py-1"
               onClick={() => toggleSection(section.id)}
@@ -709,7 +709,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
 
             {!section.collapsed && (
               <div 
-                className={`space-y-3 min-h-[60px] rounded-lg transition-all ${
+                className={`space-y-2 min-h-[40px] rounded-lg transition-all ${
                   dragOverSection === section.id ? 'bg-blue-500/10 border-2 border-blue-400/50' : ''
                 }`}
                 onDragOver={(e) => handleDragOver(e, section.id)}
@@ -719,7 +719,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                 {section.tasks.map((task) => renderTask(task, 0, section.id))}
                 
                 {section.tasks.length === 0 && (
-                  <div className="text-center py-8">
+                  <div className="text-center py-4">
                     <p className="text-sm hatchin-text-muted">
                       {dragOverSection === section.id ? 'Drop task here' : 'No tasks in this section'}
                     </p>
