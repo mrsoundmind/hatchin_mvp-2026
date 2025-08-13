@@ -383,36 +383,27 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <h4 className={`text-sm font-medium ${
+                          <h4 className={`text-sm font-medium break-words ${
                             task.status === 'completed' 
                               ? 'line-through hatchin-text-muted' 
                               : 'hatchin-text'
                           }`}>
                             {task.title}
                           </h4>
-                          <button className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                             <MoreHorizontal className="w-4 h-4 hatchin-text-muted" />
                           </button>
                         </div>
                         
                         {task.description && (
-                          <p className="text-xs hatchin-text-muted mt-1">{task.description}</p>
+                          <p className="text-xs hatchin-text-muted mt-1 break-words">{task.description}</p>
                         )}
                         
-                        <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center justify-between mt-2">
                           {task.assignee && (
                             <div className="flex items-center gap-1">
                               <User className="w-3 h-3 hatchin-text-muted" />
-                              <span className="text-xs hatchin-text-muted">{task.assignee}</span>
-                            </div>
-                          )}
-                          
-                          {task.dueDate && (
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 hatchin-text-muted" />
-                              <span className="text-xs hatchin-text-muted">
-                                {new Date(task.dueDate).toLocaleDateString()}
-                              </span>
+                              <span className="text-xs hatchin-text-muted truncate">{task.assignee}</span>
                             </div>
                           )}
                           
@@ -424,27 +415,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                               </span>
                             </div>
                           )}
-                          
-                          <div className="flex items-center gap-1">
-                            <Flag className={`w-3 h-3 ${getPriorityColor(task.priority)}`} />
-                            <span className={`text-xs capitalize ${getPriorityColor(task.priority)}`}>
-                              {task.priority}
-                            </span>
-                          </div>
                         </div>
-                        
-                        {task.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {task.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs border border-blue-500/30"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -461,29 +432,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
         ))}
       </div>
 
-      {/* Performance Insights */}
-      <div className="mt-4 pt-4 border-t border-gray-700">
-        <div className="flex items-center gap-2 mb-2">
-          <TrendingUp className="w-4 h-4 text-green-400" />
-          <span className="text-sm font-medium hatchin-text">Today's Progress</span>
-        </div>
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs">
-            <span className="hatchin-text-muted">Completion Rate</span>
-            <span className="text-green-400">
-              {getTotalTasks() > 0 ? Math.round((getCompletedTasks() / getTotalTasks()) * 100) : 0}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-1.5">
-            <div 
-              className="bg-green-400 h-1.5 rounded-full transition-all duration-1000"
-              style={{ 
-                width: `${getTotalTasks() > 0 ? (getCompletedTasks() / getTotalTasks()) * 100 : 0}%` 
-              }}
-            ></div>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };

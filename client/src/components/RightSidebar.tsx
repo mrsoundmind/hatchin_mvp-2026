@@ -1,5 +1,5 @@
 import * as React from "react";
-import { X, Save, ChevronDown, ChevronRight, Check, Wifi, WifiOff, Target } from "lucide-react";
+import { Save, ChevronDown, ChevronRight, Check, Target, Brain } from "lucide-react";
 import { ProgressTimeline } from "@/components/ProgressTimeline";
 import { useToast } from "@/hooks/use-toast";
 import { useRightSidebarState } from "@/hooks/useRightSidebarState";
@@ -167,25 +167,13 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
   if (activeView === 'agent') {
     return (
       <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
-              <span className="text-white text-sm font-medium">{activeAgent?.name?.charAt(0) || 'A'}</span>
-            </div>
-            <div>
-              <h2 className="font-semibold hatchin-text text-[16px]">Hatch Profile</h2>
-              <p className="text-xs hatchin-text-muted">{activeAgent?.name}</p>
-            </div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
+            <span className="text-white text-sm font-medium">{activeAgent?.name?.charAt(0) || 'A'}</span>
           </div>
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <Wifi className="w-4 h-4 text-green-400" />
-            ) : (
-              <WifiOff className="w-4 h-4 text-gray-500" />
-            )}
-            <button className="hatchin-text-muted hover:text-hatchin-text transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+          <div>
+            <h2 className="font-semibold hatchin-text text-[16px]">Hatch Profile</h2>
+            <p className="text-xs hatchin-text-muted">{activeAgent?.name}</p>
           </div>
         </div>
         
@@ -345,19 +333,14 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
   if (activeView === 'team') {
     return (
       <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-              <span className="text-white text-sm font-medium">{activeTeam?.emoji || '👥'}</span>
-            </div>
-            <div>
-              <h2 className="font-semibold hatchin-text text-[16px]">Team Dashboard</h2>
-              <p className="text-xs hatchin-text-muted">{activeTeam?.name}</p>
-            </div>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+            <span className="text-white text-sm font-medium">{activeTeam?.emoji || '👥'}</span>
           </div>
-          <button className="hatchin-text-muted hover:text-hatchin-text transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+          <div>
+            <h2 className="font-semibold hatchin-text text-[16px]">Team Dashboard</h2>
+            <p className="text-xs hatchin-text-muted">{activeTeam?.name}</p>
+          </div>
         </div>
         {/* Team Overview */}
         <div className="hatchin-bg-card rounded-xl p-4 mb-4">
@@ -663,44 +646,33 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
   // Project Overview View with Task Manager
   return (
     <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-            <span className="text-white text-sm">🧠</span>
-          </div>
-          <h2 className="font-semibold hatchin-text text-[16px]">Project Brain</h2>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+          <Brain className="w-3 h-3 text-white" />
         </div>
-        <div className="flex items-center gap-2">
-          {isConnected ? (
-            <Wifi className="w-4 h-4 text-green-400" />
-          ) : (
-            <WifiOff className="w-4 h-4 text-gray-500" />
-          )}
-          <button className="hatchin-text-muted hover:text-hatchin-text">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        <h2 className="font-semibold hatchin-text text-[16px]">Project Brain</h2>
       </div>
       
       {/* Tab Navigation */}
-      <div className="flex mb-4 bg-gray-800/30 rounded-lg p-1">
+      <div className="flex mb-6 border-b border-gray-700/50">
         <button
           onClick={() => setCurrentView('overview')}
-          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
             currentView === 'overview'
-              ? 'bg-blue-500 text-white'
-              : 'hatchin-text-muted hover:hatchin-text'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent hatchin-text-muted hover:hatchin-text'
           }`}
           data-testid="tab-overview"
         >
-          🧠 Overview
+          <Brain className="w-4 h-4" />
+          Overview
         </button>
         <button
           onClick={() => setCurrentView('tasks')}
-          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
             currentView === 'tasks'
-              ? 'bg-blue-500 text-white'
-              : 'hatchin-text-muted hover:hatchin-text'
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent hatchin-text-muted hover:hatchin-text'
           }`}
           data-testid="tab-tasks"
         >
@@ -711,12 +683,34 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
 
       {/* Content based on current view */}
       {currentView === 'tasks' ? (
-        <TaskManager 
-          projectId={activeProject?.id || ''}
-          teamId={activeTeam?.id}
-          agentId={activeAgent?.id}
-          isConnected={isConnected}
-        />
+        <>
+          {/* Overall Progress Section */}
+          <div className="hatchin-bg-card rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium hatchin-text">Overall Progress</h3>
+              <span className="text-sm font-semibold text-blue-400">
+                {Math.min(100, (activeProject?.progress || 0) + realTimeProgress)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2 mb-3">
+              <div 
+                className="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-1000"
+                style={{ width: `${Math.min(100, (activeProject?.progress || 0) + realTimeProgress)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs hatchin-text-muted">
+              <span>Project timeline on track</span>
+              <span>{realTimeMetrics.taskCompletions > 0 ? `+${realTimeMetrics.taskCompletions} tasks` : ''}</span>
+            </div>
+          </div>
+          
+          <TaskManager 
+            projectId={activeProject?.id || ''}
+            teamId={activeTeam?.id}
+            agentId={activeAgent?.id}
+            isConnected={isConnected}
+          />
+        </>
       ) : (
         <>
           <p className="hatchin-text-muted text-[12px] mb-6">
