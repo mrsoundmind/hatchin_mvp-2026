@@ -406,15 +406,6 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                               <span className="text-xs hatchin-text-muted truncate">{task.assignee}</span>
                             </div>
                           )}
-                          
-                          {task.estimatedHours && (
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 hatchin-text-muted" />
-                              <span className="text-xs hatchin-text-muted">
-                                {task.actualHours || 0}h / {task.estimatedHours}h
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
