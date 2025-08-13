@@ -128,6 +128,30 @@ export const conversationMemory = pgTable("conversation_memory", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Task Management Tables
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().$type<"todo" | "in_progress" | "completed" | "blocked">().default("todo"),
+  priority: text("priority").notNull().$type<"low" | "medium" | "high" | "urgent">().default("medium"),
+  assignee: text("assignee"), // Agent name/role who is assigned this task
+  dueDate: timestamp("due_date"),
+  projectId: varchar("project_id").references(() => projects.id).notNull(),
+  teamId: varchar("team_id").references(() => teams.id), // null for project-level tasks
+  parentTaskId: varchar("parent_task_id"), // self-reference for hierarchical tasks (hatches)
+  tags: text("tags").array().default([]),
+  metadata: jsonb("metadata").$type<{
+    createdFromChat?: boolean;
+    messageId?: string;
+    estimatedHours?: number;
+    actualHours?: number;
+  }>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 export const typingIndicators = pgTable("typing_indicators", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   conversationId: varchar("conversation_id").references(() => conversations.id).notNull(),
@@ -172,6 +196,17 @@ export const insertMessageReactionSchema = createInsertSchema(messageReactions).
   id: true,
   createdAt: true,
 });
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+});
+
+// Task Type Exports
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
 
 export const insertConversationMemorySchema = createInsertSchema(conversationMemory).omit({
   id: true,
