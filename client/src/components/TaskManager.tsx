@@ -261,13 +261,9 @@ const TaskManager: React.FC<TaskManagerProps> = ({
     setDraggedTask(null);
   };
 
-  const getStatusIcon = (status: Task['status'], priority: Task['priority']) => {
+  const getStatusIcon = (status: Task['status']) => {
     if (status === 'completed') {
       return <CheckCircle2 className="w-4 h-4 text-green-400" />;
-    }
-    
-    if (priority === 'urgent') {
-      return <AlertTriangle className="w-4 h-4 text-red-400" />;
     }
     
     return <Circle className="w-4 h-4 hatchin-text-muted" />;
@@ -300,7 +296,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
   };
 
   return (
-    <div className="hatchin-bg-card rounded-xl p-6">
+    <>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -419,7 +415,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                           className="hover:scale-110 transition-transform"
                           data-testid={`toggle-task-${task.id}`}
                         >
-                          {getStatusIcon(task.status, task.priority)}
+                          {getStatusIcon(task.status)}
                         </button>
                       </div>
                       
@@ -441,14 +437,12 @@ const TaskManager: React.FC<TaskManagerProps> = ({
                           </button>
                         </div>
                         
-                        {task.description && (
-                          <p className="text-sm hatchin-text-muted mt-2 break-words leading-relaxed">{task.description}</p>
-                        )}
+
                         
                         {task.assignee && (
-                          <div className="flex items-center gap-2 mt-3">
+                          <div className="flex items-center gap-2 mt-2">
                             <User className="w-3 h-3 hatchin-text-muted" />
-                            <span className="hatchin-text-muted text-[12px]">{task.assignee}</span>
+                            <span className="text-xs hatchin-text-muted">{task.assignee}</span>
                           </div>
                         )}
                       </div>
@@ -468,7 +462,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 };
 

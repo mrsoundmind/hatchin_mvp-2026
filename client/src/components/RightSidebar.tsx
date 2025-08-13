@@ -704,12 +704,14 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
             </div>
           </div>
           
-          <TaskManager 
-            projectId={activeProject?.id || ''}
-            teamId={activeTeam?.id}
-            agentId={activeAgent?.id}
-            isConnected={isConnected}
-          />
+          <div className="-mx-6 px-6">
+            <TaskManager 
+              projectId={activeProject?.id || ''}
+              teamId={activeTeam?.id}
+              agentId={activeAgent?.id}
+              isConnected={isConnected}
+            />
+          </div>
         </>
       ) : (
         <>
