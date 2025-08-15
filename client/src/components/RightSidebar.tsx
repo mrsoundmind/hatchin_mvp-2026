@@ -761,7 +761,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
       {/* Core Direction - Always Visible */}
       <div className="hatchin-bg-card rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium hatchin-text">Core Direction</h3>
+          <h3 className="font-medium hatchin-text text-[12px]">Core Direction</h3>
           <button 
             onClick={() => handleSave('core-direction', null)}
             className={`text-sm hover:text-opacity-80 transition-all duration-200 flex items-center gap-1 ${
