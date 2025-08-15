@@ -134,7 +134,7 @@ export function ProjectTree({
                   )}
                 </div>
                 <FileText className={`w-4 h-4 mr-2 ${getProjectIconColor(project.color)}`} />
-                <span className="text-sm font-medium hatchin-text truncate">
+                <span className="font-medium hatchin-text truncate text-[13px]">
                   {highlightMatch(project.name, searchQuery)}
                 </span>
               </div>
