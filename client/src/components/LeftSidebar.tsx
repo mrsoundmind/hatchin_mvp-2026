@@ -186,7 +186,7 @@ export function LeftSidebar({
 
 
   return (
-    <aside className="w-64 hatchin-bg-panel overflow-y-auto p-4">
+    <aside className="w-64 hatchin-bg-panel overflow-y-auto p-4 ml-[0px] mr-[0px] pl-[5px] pr-[5px]">
       {/* Welcome Header */}
       <div ref={dropdownRef} className="relative mb-4 pb-4 hatchin-border border-b">
         <div 
@@ -291,7 +291,6 @@ export function LeftSidebar({
           </div>
         ) : null}
       </div>
-
       {/* Add Project Modals */}
       <QuickStartModal
         isOpen={showQuickStart}
@@ -299,7 +298,6 @@ export function LeftSidebar({
         onStartWithIdea={handleStartWithIdea}
         onUseStarterPack={handleUseStarterPack}
       />
-
       <StarterPacksModal
         isOpen={showStarterPacks}
         onClose={handleCloseModals}
@@ -310,7 +308,6 @@ export function LeftSidebar({
         onSelectTemplate={handleTemplateSelect}
         isLoading={isCreatingProject}
       />
-
       <ProjectNameModal
         isOpen={showProjectName}
         onClose={handleCloseModals}
@@ -327,8 +324,6 @@ export function LeftSidebar({
         templateDescription={selectedTemplate?.description}
         isLoading={isCreatingProject}
       />
-
-
     </aside>
   );
 }
