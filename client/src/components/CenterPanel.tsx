@@ -1309,7 +1309,7 @@ export function CenterPanel({
           
           {/* Project Mode: Show Teams */}
           {currentChatContext?.mode === 'project' && activeProjectTeams.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 text-[12px]">
               {activeProjectTeams.map(team => {
                 const teamAgentCount = activeProjectAgents.filter(a => a.teamId === team.id).length;
                 return (
