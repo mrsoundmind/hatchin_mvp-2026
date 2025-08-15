@@ -1175,11 +1175,11 @@ export function CenterPanel({
           parentMessageId: replyingTo?.id || undefined,
           threadRootId: replyingTo ? (
             // Find the parent message to determine thread root
-            currentMessages.find(m => m.id === replyingTo.id)?.threadRootId || replyingTo.id
+            (currentMessages.find(m => m.id === replyingTo.id)?.threadRootId || replyingTo.id)
           ) : undefined,
           threadDepth: replyingTo ? (
             // Calculate thread depth
-            (currentMessages.find(m => m.id === replyingTo.id)?.threadDepth || 0) + 1
+            ((currentMessages.find(m => m.id === replyingTo.id)?.threadDepth || 0) + 1)
           ) : 0,
           metadata: {
             routing: recipients,
@@ -1303,7 +1303,7 @@ export function CenterPanel({
         
         {/* Subtitle and Participants Row */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-          <span className="hatchin-text-muted text-sm font-medium">
+          <span className="hatchin-text-muted font-medium text-[12px]">
             {contextDisplay.subtitle}
           </span>
           
@@ -1348,7 +1348,7 @@ export function CenterPanel({
       <div className="flex-1 flex flex-col overflow-hidden">
         {getCurrentMessages().length === 0 ? (
           /* Welcome Screen - Show when no messages */
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          (<div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="max-w-lg">
               <div className="text-[36px] mt-[0px] mb-[0px]">{contextDisplay.welcomeIcon}</div>
               <h2 className="font-semibold hatchin-text mt-[2px] mb-[2px] text-[16px]">{contextDisplay.welcomeTitle}</h2>
@@ -1380,10 +1380,10 @@ export function CenterPanel({
                 </button>
               </div>
             </div>
-          </div>
+          </div>)
         ) : (
           /* Message List - Show when messages exist */
-          <>
+          (<>
             {/* Messages Container */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {messagesLoading && (
@@ -1397,7 +1397,7 @@ export function CenterPanel({
               {/* C1.3: Thread Navigation and Collapse - Enhanced Message History */}
               {currentMessages.length > 0 && threadNavigation.threadStructure.threads.size > 0 ? (
                 // Render threaded messages when threads exist
-                <>
+                (<>
                   {Array.from(threadNavigation.threadStructure.threads.values()).map((thread) => {
                     const isCollapsed = threadNavigation.isThreadCollapsed(thread.rootMessage.id);
                     
@@ -1490,7 +1490,6 @@ export function CenterPanel({
                       </div>
                     );
                   })}
-
                   {/* Orphaned messages (messages without proper thread structure) */}
                   {threadNavigation.threadStructure.orphanedMessages.map((message) => (
                     <MessageBubble
@@ -1520,10 +1519,10 @@ export function CenterPanel({
                       }}
                     />
                   ))}
-                </>
+                </>)
               ) : (
                 // Fallback: Render messages normally when no thread structure exists
-                currentMessages.map((message, index) => {
+                (currentMessages.map((message, index) => {
                   const isGrouped = index > 0 && 
                     currentMessages[index - 1].messageType === message.messageType &&
                     currentMessages[index - 1].senderId === message.senderId &&
@@ -1557,7 +1556,7 @@ export function CenterPanel({
                       }}
                     />
                   );
-                })
+                }))
               )}
               
               {/* Typing Indicators - Show with proper agent info */}
@@ -1585,14 +1584,13 @@ export function CenterPanel({
                 </div>
               )}
             </div>
-            
             {/* Auto-scroll helper */}
             <div ref={(el) => {
               if (el && (getCurrentMessages().length > 0 || typingColleagues.length > 0)) {
                 el.scrollIntoView({ behavior: 'smooth' });
               }
             }} />
-          </>
+          </>)
         )}
       </div>
       {/* Chat Input */}
@@ -1653,7 +1651,6 @@ export function CenterPanel({
           )}
         </form>
       </div>
-      
       {/* Add Hatch Modal */}
       <AddHatchModal
         isOpen={showAddHatchModal}
