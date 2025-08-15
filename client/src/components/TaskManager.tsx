@@ -541,9 +541,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <h4 className={`font-medium hatchin-text text-sm break-words flex-1 mr-3 ${
-                  task.status === 'completed' ? 'line-through opacity-60' : ''
-                }`}>
+                <h4 className="font-medium hatchin-text break-words flex-1 mr-3 text-[12px]">
                   {task.title}
                 </h4>
                 
@@ -567,7 +565,6 @@ const TaskManager: React.FC<TaskManagerProps> = ({
             </div>
           </div>
         </div>
-        
         {/* Render subtasks if expanded */}
         {hasSubtasks && task.isExpanded && (
           <div className="mt-2 space-y-1">
