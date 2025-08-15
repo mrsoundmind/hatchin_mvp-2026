@@ -629,17 +629,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
           <Plus className="w-5 h-5" />
         </button>
       </div>
-      {/* Quick Stats - Compact */}
-      <div className="grid grid-cols-2 gap-3 mt-[-6px] mb-[-6px]">
-        <div className="hatchin-bg-panel rounded-md p-2 text-center">
-          <div className="text-sm font-semibold hatchin-text">{getTotalTasks()}</div>
-          <div className="text-xs hatchin-text-muted">Total</div>
-        </div>
-        <div className="hatchin-bg-panel rounded-md p-2 text-center">
-          <div className="text-sm font-semibold text-green-400">{getCompletedTasks()}</div>
-          <div className="text-xs hatchin-text-muted">Done</div>
-        </div>
-      </div>
+      
       {/* New Task Form */}
       {showNewTaskForm && (
         <div className="mb-4 p-3 bg-gray-800/30 rounded-lg border border-gray-700">
