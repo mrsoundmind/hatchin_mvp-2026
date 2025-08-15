@@ -622,7 +622,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({
       <div className="flex items-center justify-between mt-[-5px] mb-[-5px]">
         <div className="flex items-center gap-3">
           <Target className="w-5 h-5 text-blue-400" />
-          <h3 className="text-lg font-semibold hatchin-text">Task Manager</h3>
+          <h3 className="font-semibold hatchin-text text-[12px]">Task Manager</h3>
         </div>
         <button
           onClick={() => setShowNewTaskForm(true)}
