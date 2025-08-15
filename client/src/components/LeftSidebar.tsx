@@ -186,9 +186,9 @@ export function LeftSidebar({
 
 
   return (
-    <aside className="w-80 hatchin-bg-panel rounded-2xl p-4 overflow-y-auto pl-[20px] pr-[20px]">
+    <aside className="w-64 hatchin-bg-panel rounded-2xl overflow-y-auto">
       {/* Welcome Header */}
-      <div ref={dropdownRef} className="relative mb-4 pb-4 hatchin-border border-b">
+      <div ref={dropdownRef} className="relative mb-4 pb-4 hatchin-border border-b px-4 pt-4">
         <div 
           className="flex items-center justify-between cursor-pointer hover:bg-hatchin-border rounded-lg p-2 transition-colors"
           onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -225,8 +225,8 @@ export function LeftSidebar({
         )}
       </div>
       {/* Search Bar */}
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 hatchin-text-muted" />
+      <div className="relative mb-6 px-4">
+        <Search className="absolute left-7 top-1/2 transform -translate-y-1/2 w-4 h-4 hatchin-text-muted" />
         <input 
           ref={searchInputRef}
           type="text" 
@@ -238,14 +238,14 @@ export function LeftSidebar({
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 hatchin-text-muted hover:hatchin-text transition-colors"
+            className="absolute right-7 top-1/2 transform -translate-y-1/2 hatchin-text-muted hover:hatchin-text transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         )}
       </div>
       {/* Projects Section */}
-      <div className="mb-6">
+      <div className="mb-6 px-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-medium hatchin-text-muted uppercase tracking-wide text-[12px]">
             Projects
