@@ -222,7 +222,7 @@ export function ProjectTree({
                                   onClick={() => onSelectAgent(agent.id)}
                                 >
                                   <User className={`w-4 h-4 mr-1 ${getProjectIconColor(projects.find(p => p.id === agent.projectId)?.color || 'blue')}`} />
-                                  <span className="text-sm hatchin-text-muted truncate">
+                                  <span className="hatchin-text-muted truncate text-[12px]">
                                     {highlightMatch(agent.role || agent.name, searchQuery)}
                                   </span>
                                 </div>
