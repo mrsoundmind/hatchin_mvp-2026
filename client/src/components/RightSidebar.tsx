@@ -799,7 +799,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           </div>
           
           <div>
-            <h4 className="text-sm font-medium hatchin-text mb-3">Why does this matter?</h4>
+            <h4 className="font-medium hatchin-text mb-3 text-[13px]">Why does this matter?</h4>
             <textarea 
               value={coreDirection.whyMatters}
               onChange={(e) => updateCoreDirection('whyMatters', e.target.value)}
