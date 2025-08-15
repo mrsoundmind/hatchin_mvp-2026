@@ -466,24 +466,20 @@ export default function Home() {
           onDeleteAgent={handleDeleteAgent}
         />
         
-        <div className="flex-1" style={{ paddingTop: '3px', paddingBottom: '3px' }}>
-          <CenterPanel
-            activeProject={activeProject}
-            activeProjectTeams={activeProjectTeams}
-            activeProjectAgents={activeProjectAgents}
-            activeTeamId={activeTeamId}
-            activeAgentId={activeAgentId}
-            onAddAgent={handleCreateAgent}
-          />
-        </div>
+        <CenterPanel
+          activeProject={activeProject}
+          activeProjectTeams={activeProjectTeams}
+          activeProjectAgents={activeProjectAgents}
+          activeTeamId={activeTeamId}
+          activeAgentId={activeAgentId}
+          onAddAgent={handleCreateAgent}
+        />
         
-        <div style={{ paddingTop: '3px', paddingBottom: '3px' }}>
-          <RightSidebar
-            activeProject={activeProject}
-            activeTeam={teams.find(t => t.id === activeTeamId)}
-            activeAgent={agents.find(a => a.id === activeAgentId)}
-          />
-        </div>
+        <RightSidebar
+          activeProject={activeProject}
+          activeTeam={teams.find(t => t.id === activeTeamId)}
+          activeAgent={agents.find(a => a.id === activeAgentId)}
+        />
       </div>
       
       {/* Egg Hatching Animation */}
