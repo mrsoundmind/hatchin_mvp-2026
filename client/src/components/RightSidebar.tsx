@@ -73,7 +73,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
 
   if (activeView === 'none') {
     return (
-      <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 flex items-center justify-center my-1.5">
+      <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 flex items-center justify-center my-2.5">
         <div className="text-center hatchin-text-muted">
           <div className="text-4xl mb-4">🧠</div>
           <p className="text-sm">
@@ -645,7 +645,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
 
   // Project Overview View with Task Manager
   return (
-    <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto my-1.5">
+    <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto my-2.5">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
           <Brain className="w-3 h-3 text-white" />

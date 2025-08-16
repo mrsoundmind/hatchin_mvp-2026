@@ -1276,7 +1276,7 @@ export function CenterPanel({
   }
 
   return (
-    <main className="flex-1 hatchin-bg-panel rounded-2xl flex flex-col my-1.5">
+    <main className="flex-1 hatchin-bg-panel rounded-2xl flex flex-col my-2.5">
       {/* Enhanced Chat Header */}
       <div className="px-6 py-4 hatchin-border border-b">
         {/* Main Header Row */}
