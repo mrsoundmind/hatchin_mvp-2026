@@ -466,14 +466,16 @@ export default function Home() {
           onDeleteAgent={handleDeleteAgent}
         />
         
-        <CenterPanel
-          activeProject={activeProject}
-          activeProjectTeams={activeProjectTeams}
-          activeProjectAgents={activeProjectAgents}
-          activeTeamId={activeTeamId}
-          activeAgentId={activeAgentId}
-          onAddAgent={handleCreateAgent}
-        />
+        <div className="flex-1 my-1.5">
+          <CenterPanel
+            activeProject={activeProject}
+            activeProjectTeams={activeProjectTeams}
+            activeProjectAgents={activeProjectAgents}
+            activeTeamId={activeTeamId}
+            activeAgentId={activeAgentId}
+            onAddAgent={handleCreateAgent}
+          />
+        </div>
         
         <RightSidebar
           activeProject={activeProject}
