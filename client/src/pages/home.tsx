@@ -444,7 +444,7 @@ export default function Home() {
 
   return (
     <div className="hatchin-bg-dark min-h-screen overflow-hidden">
-      <div className="h-screen flex gap-6">
+      <div className="h-screen flex gap-3">
         <LeftSidebar
           projects={projects}
           teams={teams}
