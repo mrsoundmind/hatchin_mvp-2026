@@ -1,4 +1,5 @@
-import { ChevronDown, ChevronRight, MoreHorizontal, FileText, Users, User, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ChevronDown, ChevronRight, MoreHorizontal, FileText, Users, User, X, File, Folder, UserCircle, Edit, Trash2 } from "lucide-react";
 import type { Project, Team, Agent } from "@shared/schema";
 
 interface ProjectTreeProps {
@@ -17,6 +18,10 @@ interface ProjectTreeProps {
   onToggleTeamExpanded: (teamId: string) => void;
   onDeleteTeam?: (teamId: string) => void;
   onDeleteAgent?: (agentId: string) => void;
+  onDeleteProject?: (projectId: string) => Promise<void>;
+  onUpdateProject?: (projectId: string, updates: Partial<Project>) => Promise<void>;
+  onUpdateTeam?: (teamId: string, updates: Partial<Team>) => Promise<void>;
+  onUpdateAgent?: (agentId: string, updates: Partial<Agent>) => Promise<void>;
   searchQuery?: string;
 }
 
@@ -36,6 +41,10 @@ export function ProjectTree({
   onToggleTeamExpanded,
   onDeleteTeam,
   onDeleteAgent,
+  onDeleteProject,
+  onUpdateProject,
+  onUpdateTeam,
+  onUpdateAgent,
   searchQuery = "",
 }: ProjectTreeProps) {
   // Helper function to highlight search matches
@@ -96,6 +105,166 @@ export function ProjectTree({
     }
   };
 
+  // State for inline editing
+  const [editingProject, setEditingProject] = useState<string | null>(null);
+  const [editingTeam, setEditingTeam] = useState<string | null>(null);
+  const [editingAgent, setEditingAgent] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // State for context menu and delete confirmations
+  const [contextMenuOpen, setContextMenuOpen] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showTeamDeleteConfirm, setShowTeamDeleteConfirm] = useState<string | null>(null);
+  const [showAgentDeleteConfirm, setShowAgentDeleteConfirm] = useState<string | null>(null);
+  
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (inputRef.current && (editingProject || editingTeam || editingAgent)) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingProject, editingTeam, editingAgent]);
+
+  // Handle double-click to start editing
+  const handleDoubleClick = (type: 'project' | 'team' | 'agent', id: string, currentName: string) => {
+    if (type === 'project') {
+      setEditingProject(id);
+    } else if (type === 'team') {
+      setEditingTeam(id);
+    } else if (type === 'agent') {
+      setEditingAgent(id);
+    }
+    setEditValue(currentName);
+  };
+
+  // Handle edit submission
+  const handleEditSubmit = async () => {
+    const trimmedValue = editValue.trim();
+    if (!trimmedValue) return;
+
+    try {
+      if (editingProject && onUpdateProject) {
+        await onUpdateProject(editingProject, { name: trimmedValue });
+      } else if (editingTeam && onUpdateTeam) {
+        await onUpdateTeam(editingTeam, { name: trimmedValue });
+      } else if (editingAgent && onUpdateAgent) {
+        await onUpdateAgent(editingAgent, { name: trimmedValue });
+      }
+    } catch (error) {
+      console.error('Failed to update:', error);
+    } finally {
+      setEditingProject(null);
+      setEditingTeam(null);
+      setEditingAgent(null);
+      setEditValue("");
+    }
+  };
+
+  // Handle edit cancellation
+  const handleEditCancel = () => {
+    setEditingProject(null);
+    setEditingTeam(null);
+    setEditingAgent(null);
+    setEditValue("");
+  };
+
+  // Handle key events
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleEditSubmit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleEditCancel();
+    }
+  };
+
+  // Context menu handlers
+  const handleContextMenuToggle = (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setContextMenuOpen(contextMenuOpen === projectId ? null : projectId);
+    setShowDeleteConfirm(null);
+  };
+
+  const handleRenameProject = (projectId: string, currentName: string) => {
+    setContextMenuOpen(null);
+    handleDoubleClick('project', projectId, currentName);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    console.log('handleDeleteProject called with projectId:', projectId);
+    if (onDeleteProject) {
+      try {
+        console.log('Calling onDeleteProject...');
+        await onDeleteProject(projectId);
+        console.log('Project deleted successfully');
+        
+        setContextMenuOpen(null);
+        setShowDeleteConfirm(null);
+        
+      } catch (error) {
+        console.error('Failed to delete project:', error);
+        setShowDeleteConfirm(null);
+      }
+    } else {
+      console.error('onDeleteProject is not defined');
+      setShowDeleteConfirm(null);
+    }
+  };
+
+
+  // Team delete handlers
+  const handleDeleteTeam = (teamId: string) => {
+    console.log('handleDeleteTeam called with teamId:', teamId);
+    if (onDeleteTeam) {
+      try {
+        console.log('Calling onDeleteTeam...');
+        onDeleteTeam(teamId);
+        console.log('Team deleted successfully');
+        setShowTeamDeleteConfirm(null);
+      } catch (error) {
+        console.error('Failed to delete team:', error);
+        setShowTeamDeleteConfirm(null); // Close dialog even on error
+      }
+    } else {
+      console.error('onDeleteTeam is not defined');
+      setShowTeamDeleteConfirm(null); // Close dialog if handler not available
+    }
+  };
+
+  // Agent delete handlers
+  const handleDeleteAgent = (agentId: string) => {
+    console.log('handleDeleteAgent called with agentId:', agentId);
+    if (onDeleteAgent) {
+      try {
+        console.log('Calling onDeleteAgent...');
+        onDeleteAgent(agentId);
+        console.log('Agent deleted successfully');
+        setShowAgentDeleteConfirm(null);
+      } catch (error) {
+        console.error('Failed to delete agent:', error);
+        setShowAgentDeleteConfirm(null); // Close dialog even on error
+      }
+    } else {
+      console.error('onDeleteAgent is not defined');
+      setShowAgentDeleteConfirm(null); // Close dialog if handler not available
+    }
+  };
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenuOpen(null);
+      setShowDeleteConfirm(null);
+      setShowTeamDeleteConfirm(null);
+      setShowAgentDeleteConfirm(null);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
     <div className="space-y-1">
       {projects.map(project => {
@@ -133,14 +302,107 @@ export function ProjectTree({
                     )
                   )}
                 </div>
-                <FileText className={`w-4 h-4 mr-2 ${getProjectIconColor(project.color)}`} />
-                <span className="font-medium hatchin-text truncate text-[13px]">
-                  {highlightMatch(project.name, searchQuery)}
-                </span>
+                <File className={`w-4 h-4 mr-2 ${getProjectIconColor(project.color)}`} />
+                {editingProject === project.id ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleEditSubmit}
+                    className="font-medium hatchin-text text-[13px] bg-transparent border-none outline-none flex-1 min-w-0"
+                    style={{ width: `${Math.max(editValue.length * 8, 60)}px` }}
+                  />
+                ) : (
+                  <span 
+                    className="font-medium hatchin-text truncate text-[13px] cursor-pointer hover:bg-hatchin-border/50 px-1 py-0.5 rounded"
+                    onDoubleClick={() => handleDoubleClick('project', project.id, project.name)}
+                  >
+                    {highlightMatch(project.name, searchQuery)}
+                  </span>
+                )}
               </div>
-              <button className="opacity-0 group-hover:opacity-100 hatchin-text-muted hover:hatchin-text transition-opacity flex-shrink-0">
-                <MoreHorizontal className="w-3.5 h-3.5" />
-              </button>
+              <div className="relative flex-shrink-0">
+                <button 
+                  className="opacity-0 group-hover:opacity-100 hatchin-text-muted hover:hatchin-text transition-opacity"
+                  onClick={(e) => handleContextMenuToggle(project.id, e)}
+                >
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                </button>
+                
+                {/* Context Menu */}
+                {contextMenuOpen === project.id && (
+                  <div className="absolute right-2 top-6 z-50 bg-[#34373d] border border-gray-600 rounded-lg shadow-lg py-1 min-w-[120px]">
+                    <button
+                      className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#40444b] flex items-center gap-3 transition-colors"
+                      onClick={() => handleRenameProject(project.id, project.name)}
+                    >
+                      <Edit className="w-4 h-4" />
+                      Rename
+                    </button>
+                    <button
+                      className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/20 flex items-center gap-3 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('Delete button clicked for project:', project.id);
+                        setContextMenuOpen(null); // Close context menu first
+                        setShowDeleteConfirm(project.id); // Then show delete confirmation
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
+                )}
+                
+                {/* Delete Confirmation */}
+                {showDeleteConfirm === project.id && (
+                  <div 
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteConfirm(null);
+                    }}
+                  >
+                    <div 
+                      className="bg-[#34373d] border border-red-500/50 rounded-lg shadow-xl p-6 min-w-[300px] max-w-[400px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                          <Trash2 className="w-4 h-4 text-red-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-white">Delete Project</h3>
+                      </div>
+                      <p className="text-sm text-gray-300 mb-6">
+                        Are you sure you want to delete <span className="font-medium text-white">"{project.name}"</span>? 
+                        This action cannot be undone.
+                      </p>
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors rounded-md hover:bg-gray-700/50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDeleteConfirm(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProject(project.id);
+                          }}
+                        >
+                          Delete Project
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             {/* Teams and Individual Agents */}
             {isProjectExpanded && (
@@ -181,9 +443,25 @@ export function ProjectTree({
                             )}
                           </div>
                           <Users className={`w-4 h-4 mr-2 ${getProjectIconColor(projects.find(p => p.id === team.projectId)?.color || 'blue')}`} />
-                          <span className="hatchin-text text-[12px] truncate">
-                            {highlightMatch(team.name, searchQuery)}
-                          </span>
+                          {editingTeam === team.id ? (
+                            <input
+                              ref={inputRef}
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={handleKeyDown}
+                              onBlur={handleEditSubmit}
+                              className="hatchin-text text-[12px] bg-transparent border-none outline-none flex-1 min-w-0"
+                              style={{ width: `${Math.max(editValue.length * 7, 50)}px` }}
+                            />
+                          ) : (
+                            <span 
+                              className="hatchin-text text-[12px] truncate cursor-pointer hover:bg-hatchin-border/50 px-1 py-0.5 rounded"
+                              onDoubleClick={() => handleDoubleClick('team', team.id, team.name)}
+                            >
+                              {highlightMatch(team.name, searchQuery)}
+                            </span>
+                          )}
                           <span className="text-xs hatchin-text-muted flex-shrink-0 ml-1">
                             ({teamAgents.length})
                           </span>
@@ -193,13 +471,60 @@ export function ProjectTree({
                             className="opacity-0 group-hover:opacity-100 hatchin-text-muted hover:text-red-400 transition-all flex-shrink-0 p-1"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onDeleteTeam(team.id);
+                              setShowTeamDeleteConfirm(team.id);
                             }}
                             data-testid={`button-delete-team-${team.id}`}
                             title="Delete team"
                           >
-                            <X className="w-3 h-3" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
+                        )}
+
+                        {/* Team Delete Confirmation */}
+                        {showTeamDeleteConfirm === team.id && (
+                          <div 
+                            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowTeamDeleteConfirm(null);
+                            }}
+                          >
+                            <div 
+                              className="bg-[#34373d] border border-red-500/50 rounded-lg shadow-xl p-6 min-w-[300px] max-w-[400px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                                  <Trash2 className="w-4 h-4 text-red-400" />
+                                </div>
+                                <h3 className="text-lg font-medium text-white">Delete Team</h3>
+                              </div>
+                              <p className="text-sm text-gray-300 mb-6">
+                                Are you sure you want to delete <span className="font-medium text-white">"{team.name}"</span>? 
+                                This action cannot be undone.
+                              </p>
+                              <div className="flex gap-3 justify-end">
+                                <button
+                                  className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors rounded-md hover:bg-gray-700/50"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowTeamDeleteConfirm(null);
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteTeam(team.id);
+                                  }}
+                                >
+                                  Delete Team
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                       {/* Team Agents */}
@@ -220,22 +545,85 @@ export function ProjectTree({
                               >
                                 <div className="flex items-center gap-2 min-w-0 flex-1">
                                   <User className={`w-4 h-4 ${getProjectIconColor(projects.find(p => p.id === agent.projectId)?.color || 'blue')}`} />
-                                  <span className="hatchin-text-muted text-[12px] truncate">
-                                    {highlightMatch(agent.role || agent.name, searchQuery)}
-                                  </span>
+                                  {editingAgent === agent.id ? (
+                                    <input
+                                      ref={inputRef}
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onKeyDown={handleKeyDown}
+                                      onBlur={handleEditSubmit}
+                                      className="hatchin-text-muted text-[12px] bg-transparent border-none outline-none flex-1 min-w-0"
+                                      style={{ width: `${Math.max(editValue.length * 7, 50)}px` }}
+                                    />
+                                  ) : (
+                                    <span 
+                                      className="hatchin-text-muted text-[12px] truncate cursor-pointer hover:bg-hatchin-border/50 px-1 py-0.5 rounded"
+                                      onDoubleClick={() => handleDoubleClick('agent', agent.id, agent.role || agent.name)}
+                                    >
+                                      {highlightMatch(agent.role || agent.name, searchQuery)}
+                                    </span>
+                                  )}
                                 </div>
                                 {onDeleteAgent && (
                                   <button 
                                     className="opacity-0 group-hover:opacity-100 hatchin-text-muted hover:text-red-400 transition-all flex-shrink-0 p-1"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onDeleteAgent(agent.id);
+                                      setShowAgentDeleteConfirm(agent.id);
                                     }}
                                     data-testid={`button-delete-agent-${agent.id}`}
                                     title="Delete agent"
                                   >
-                                    <X className="w-3 h-3" />
+                                    <Trash2 className="w-3 h-3" />
                                   </button>
+                                )}
+
+                                {/* Agent Delete Confirmation */}
+                                {showAgentDeleteConfirm === agent.id && (
+                                  <div 
+                                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowAgentDeleteConfirm(null);
+                                    }}
+                                  >
+                                    <div 
+                                      className="bg-[#34373d] border border-red-500/50 rounded-lg shadow-xl p-6 min-w-[300px] max-w-[400px]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                                          <Trash2 className="w-4 h-4 text-red-400" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-white">Delete Agent</h3>
+                                      </div>
+                                      <p className="text-sm text-gray-300 mb-6">
+                                        Are you sure you want to delete <span className="font-medium text-white">"{agent.role || agent.name}"</span>? 
+                                        This action cannot be undone.
+                                      </p>
+                                      <div className="flex gap-3 justify-end">
+                                        <button
+                                          className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors rounded-md hover:bg-gray-700/50"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowAgentDeleteConfirm(null);
+                                          }}
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button
+                                          className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteAgent(agent.id);
+                                          }}
+                                        >
+                                          Delete Agent
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             );
@@ -264,22 +652,85 @@ export function ProjectTree({
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <User className={`w-4 h-4 ${getProjectIconColor(projects.find(p => p.id === agent.projectId)?.color || 'blue')}`} />
-                          <span className="hatchin-text-muted text-[12px] truncate">
-                            {highlightMatch(agent.name, searchQuery)}
-                          </span>
+                          {editingAgent === agent.id ? (
+                            <input
+                              ref={inputRef}
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={handleKeyDown}
+                              onBlur={handleEditSubmit}
+                              className="hatchin-text-muted text-[12px] bg-transparent border-none outline-none flex-1 min-w-0"
+                              style={{ width: `${Math.max(editValue.length * 7, 50)}px` }}
+                            />
+                          ) : (
+                            <span 
+                              className="hatchin-text-muted text-[12px] truncate cursor-pointer hover:bg-hatchin-border/50 px-1 py-0.5 rounded"
+                              onDoubleClick={() => handleDoubleClick('agent', agent.id, agent.name)}
+                            >
+                              {highlightMatch(agent.name, searchQuery)}
+                            </span>
+                          )}
                         </div>
                         {onDeleteAgent && (
                           <button 
                             className="opacity-0 group-hover:opacity-100 hatchin-text-muted hover:text-red-400 transition-all flex-shrink-0 p-1"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onDeleteAgent(agent.id);
+                              setShowAgentDeleteConfirm(agent.id);
                             }}
                             data-testid={`button-delete-agent-${agent.id}`}
                             title="Delete agent"
                           >
-                            <X className="w-3 h-3" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
+                        )}
+
+                        {/* Individual Agent Delete Confirmation */}
+                        {showAgentDeleteConfirm === agent.id && (
+                          <div 
+                            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowAgentDeleteConfirm(null);
+                            }}
+                          >
+                            <div 
+                              className="bg-[#34373d] border border-red-500/50 rounded-lg shadow-xl p-6 min-w-[300px] max-w-[400px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
+                                  <Trash2 className="w-4 h-4 text-red-400" />
+                                </div>
+                                <h3 className="text-lg font-medium text-white">Delete Agent</h3>
+                              </div>
+                              <p className="text-sm text-gray-300 mb-6">
+                                Are you sure you want to delete <span className="font-medium text-white">"{agent.name}"</span>? 
+                                This action cannot be undone.
+                              </p>
+                              <div className="flex gap-3 justify-end">
+                                <button
+                                  className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors rounded-md hover:bg-gray-700/50"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowAgentDeleteConfirm(null);
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-medium"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAgent(agent.id);
+                                  }}
+                                >
+                                  Delete Agent
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     );

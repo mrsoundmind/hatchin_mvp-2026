@@ -48,6 +48,10 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
       setRealTimeTimeline(prev => [event, ...prev].slice(0, 10)); // Keep last 10 events
       console.log('📅 Timeline updated:', event);
     },
+    onTaskSuggestion: (suggestions) => {
+      console.log('🤖 AI Task suggestions received:', suggestions);
+      // This will be handled by the TaskManager component
+    },
     debounceMs: 500
   });
 
@@ -166,10 +170,10 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
   // Agent Profile View
   if (activeView === 'agent') {
     return (
-      <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
+      <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto my-2.5">
         <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
-            <span className="text-white text-sm font-medium">{activeAgent?.name?.charAt(0) || 'A'}</span>
+          <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center">
+            <span className="text-lg">👤</span>
           </div>
           <div>
             <h2 className="font-semibold hatchin-text text-[16px]">Hatch Profile</h2>
@@ -332,10 +336,10 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
   // Team Dashboard View
   if (activeView === 'team') {
     return (
-      <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto">
+      <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto my-2.5">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
-            <span className="text-white text-sm font-medium">{activeTeam?.emoji || '👥'}</span>
+          <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center">
+            <span className="text-lg">{activeTeam?.emoji || '👥'}</span>
           </div>
           <div>
             <h2 className="font-semibold hatchin-text text-[16px]">Team Dashboard</h2>
@@ -584,9 +588,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
               <div key={index} className="bg-gray-800/30 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center">
-                      <span className="text-xs text-white font-medium">{member.name.charAt(0)}</span>
-                    </div>
+                    <div className="text-lg">👤</div>
                     <div>
                       <p className="text-xs hatchin-text font-medium">{member.name}</p>
                       <p className="text-xs hatchin-text-muted">{member.role}</p>
@@ -646,12 +648,12 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
   // Project Overview View with Task Manager
   return (
     <aside className="w-80 hatchin-bg-panel rounded-2xl p-6 overflow-y-auto my-2.5">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-          <Brain className="w-3 h-3 text-white" />
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-full bg-gray-500/20 flex items-center justify-center">
+            <span className="text-lg">🧠</span>
+          </div>
+          <h2 className="font-semibold hatchin-text text-[16px]">Project Brain</h2>
         </div>
-        <h2 className="font-semibold hatchin-text text-[16px]">Project Brain</h2>
-      </div>
       {/* Tab Navigation */}
       <div className="flex mb-6 border-b border-gray-700/50">
         <button
@@ -663,7 +665,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           }`}
           data-testid="tab-overview"
         >
-          <Brain className="w-4 h-4" />
+          <span className="text-lg">📝</span>
           Overview
         </button>
         <button
@@ -675,7 +677,7 @@ export function RightSidebar({ activeProject, activeTeam, activeAgent }: RightSi
           }`}
           data-testid="tab-tasks"
         >
-          <Target className="w-4 h-4" />
+          <span className="text-lg">✅</span>
           Tasks
         </button>
       </div>

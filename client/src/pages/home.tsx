@@ -5,10 +5,15 @@ import { LeftSidebar } from "@/components/LeftSidebar";
 import { CenterPanel } from "@/components/CenterPanel";
 import { RightSidebar } from "@/components/RightSidebar";
 import { EggHatchingAnimation } from "@/components/EggHatchingAnimation";
+import { OnboardingManager } from "@/components/OnboardingManager";
+import QuickStartModal from "@/components/QuickStartModal";
+import StarterPacksModal from "@/components/StarterPacksModal";
+import ProjectNameModal from "@/components/ProjectNameModal";
 import type { Project, Team, Agent } from "@shared/schema";
+import { devLog } from "@/lib/devLog";
 
 export default function Home() {
-  const [activeProjectId, setActiveProjectId] = useState<string>("saas-startup");
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activeTeamId, setActiveTeamId] = useState<string | null>(null);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   // All projects should always be expanded, and teams should be expanded by default
@@ -26,6 +31,13 @@ export default function Home() {
     starterPackTitle: string;
   } | null>(null);
   const [isPackHatching, setIsPackHatching] = useState(false);
+  
+  // Shared modal state for project creation (used by both LeftSidebar and CenterPanel)
+  const [showQuickStart, setShowQuickStart] = useState(false);
+  const [showStarterPacks, setShowStarterPacks] = useState(false);
+  const [showProjectName, setShowProjectName] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
 
   const { data: projects = [], refetch: refetchProjects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -39,9 +51,9 @@ export default function Home() {
     queryKey: ["/api/agents"],
   });
 
-  const activeProject = projects.find(p => p.id === activeProjectId);
-  const activeProjectTeams = teams.filter(t => t.projectId === activeProjectId);
-  const activeProjectAgents = agents.filter(a => a.projectId === activeProjectId);
+  const activeProject = activeProjectId ? projects.find(p => p.id === activeProjectId) : undefined;
+  const activeProjectTeams = activeProjectId ? teams.filter(t => t.projectId === activeProjectId) : [];
+  const activeProjectAgents = activeProjectId ? agents.filter(a => a.projectId === activeProjectId) : [];
 
   // Auto-expand all projects and teams when data loads
   useEffect(() => {
@@ -84,17 +96,42 @@ export default function Home() {
   // Selection handlers - ensure users can switch between projects
   const handleSelectProject = (projectId: string) => {
     console.log('Selecting project:', projectId);
+    
+    devLog('PROJECT_SELECTED', {
+      nextProjectId: projectId,
+      previousProjectId: activeProjectId,
+      previousTeamId: activeTeamId,
+      previousAgentId: activeAgentId,
+      selectionReason: 'user_click'
+    });
+    
     setActiveProjectId(projectId);
     setActiveTeamId(null);
     setActiveAgentId(null);
   };
 
   const handleSelectTeam = (teamId: string | null) => {
+    devLog('TEAM_SELECTED', {
+      nextTeamId: teamId,
+      previousTeamId: activeTeamId,
+      previousAgentId: activeAgentId,
+      projectId: activeProjectId,
+      selectionReason: 'user_click'
+    });
+    
     setActiveTeamId(teamId);
     setActiveAgentId(null);
   };
 
   const handleSelectAgent = (agentId: string | null) => {
+    devLog('AGENT_SELECTED', {
+      nextAgentId: agentId,
+      previousAgentId: activeAgentId,
+      projectId: activeProjectId,
+      teamId: activeTeamId,
+      selectionReason: 'user_click'
+    });
+    
     setActiveAgentId(agentId);
   };
 
@@ -118,10 +155,27 @@ export default function Home() {
         const newProject = await response.json();
         console.log('Project created successfully:', newProject);
         
-        // Set the new project as active
+        devLog('PROJECT_CREATED', {
+          projectId: newProject.id,
+          projectName: newProject.name,
+          creationType: 'normal'
+        });
+        
+        // ============================================================
+        // INVARIANT: Routing Invariant (Phase 1.4)
+        // New projects must start in PROJECT scope by default.
+        // Do NOT set activeAgentId here.
+        // ============================================================
         setActiveProjectId(newProject.id);
         setActiveTeamId(null);
-        setActiveAgentId(null);
+        setActiveAgentId(null); // MUST be null - enforces project scope
+        
+        devLog('POST_CREATE_AUTO_SELECTION', {
+          projectId: newProject.id,
+          activeTeamId: null,
+          activeAgentId: null,
+          selectionReason: 'newly_created_project'
+        });
         
         // Auto-expand the new project 
         setExpandedProjects(prev => {
@@ -129,6 +183,9 @@ export default function Home() {
           newSet.add(newProject.id);
           return newSet;
         });
+        
+        // Return the created project for undo functionality
+        return newProject;
         
         // Trigger data refresh
         refetchProjects();
@@ -160,6 +217,12 @@ export default function Home() {
       if (response.ok) {
         const newProject = await response.json();
         console.log('Idea project created successfully:', newProject);
+        
+        devLog('IDEA_PROJECT_CREATED', {
+          projectId: newProject.id,
+          projectName: newProject.name,
+          creationType: 'idea'
+        });
         
         // Store project data for the egg hatching animation
         setIdeaProjectData({ name, description });
@@ -216,10 +279,24 @@ export default function Home() {
             t.projectId === newProject.id && t.name === "Core Team"
           );
           
-          // Set this project as active and expand it, and expand the Core Team to show Maya
+          // ============================================================
+          // INVARIANT: Routing Invariant (Phase 1.4)
+          // New projects must start in PROJECT scope by default.
+          // Do NOT set activeAgentId here, even if mayaAgent exists.
+          // User must explicitly select an agent to enter agent scope.
+          // ============================================================
           setActiveProjectId(newProject.id);
           setActiveTeamId(null);
-          setActiveAgentId(mayaAgent?.id || null);
+          setActiveAgentId(null); // MUST be null - enforces project scope
+          
+          devLog('POST_CREATE_AUTO_SELECTION', {
+            projectId: newProject.id,
+            activeTeamId: null,
+            activeAgentId: null,
+            mayaAgentFound: !!mayaAgent,
+            coreTeamFound: !!coreTeam,
+            selectionReason: 'egg_hatching_complete_project_scope'
+          });
           
           // Expand both project and core team to show Maya
           setExpandedProjects(prev => {
@@ -365,6 +442,9 @@ export default function Home() {
           });
         }
         
+        // Return the created agent for undo functionality
+        return newAgent;
+        
         console.log('Agent created and UI updated:', newAgent);
       } else {
         const errorText = await response.text();
@@ -372,6 +452,37 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error creating agent:', error);
+    }
+  };
+
+  // Team creation handler
+  const handleCreateTeam = async (name: string, projectId: string) => {
+    try {
+      console.log('Creating team with data:', { name, projectId });
+      const response = await fetch('/api/teams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, projectId }),
+      });
+
+      if (response.ok) {
+        const newTeam = await response.json();
+        console.log('Team created successfully:', newTeam);
+        
+        // Refresh data
+        await refetchTeams();
+        console.log('Teams refetched');
+        
+        // Return the created team for undo functionality
+        return newTeam;
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to create team:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('Error creating team:', error);
     }
   };
 
@@ -425,6 +536,147 @@ export default function Home() {
     }
   };
 
+  const handleDeleteProject = async (projectId: string) => {
+    console.log('🚀 handleDeleteProject called with projectId:', projectId);
+    try {
+      console.log('📡 Making DELETE request to:', `/api/projects/${projectId}`);
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
+      if (response.ok) {
+        console.log('✅ Project deleted successfully');
+        // Clear active project if it was the deleted one
+        if (activeProjectId === projectId) {
+          console.log('🔄 Clearing active project');
+          setActiveProjectId(null);
+        }
+        console.log('🔄 Refetching projects...');
+        await refetchProjects();
+        console.log('✅ Projects refetched');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Failed to delete project. Status:', response.status);
+        console.error('❌ Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting project:', error);
+    }
+  };
+
+  const handleUpdateProject = async (projectId: string, updates: Partial<Project>) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (response.ok) {
+        console.log('Project updated successfully');
+        await refetchProjects();
+      } else {
+        console.error('Failed to update project');
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+    }
+  };
+
+  const handleUpdateTeam = async (teamId: string, updates: Partial<Team>) => {
+    try {
+      const response = await fetch(`/api/teams/${teamId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (response.ok) {
+        console.log('Team updated successfully');
+        await refetchTeams();
+      } else {
+        console.error('Failed to update team');
+      }
+    } catch (error) {
+      console.error('Error updating team:', error);
+    }
+  };
+
+  const handleUpdateAgent = async (agentId: string, updates: Partial<Agent>) => {
+    try {
+      const response = await fetch(`/api/agents/${agentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (response.ok) {
+        console.log('Agent updated successfully');
+        await refetchAgents();
+      } else {
+        console.error('Failed to update agent');
+      }
+    } catch (error) {
+      console.error('Error updating agent:', error);
+    }
+  };
+
+  // Shared modal handlers for project creation
+  const handleAddProjectClick = () => {
+    setShowQuickStart(true);
+  };
+
+  const handleStartWithIdea = () => {
+    setShowQuickStart(false);
+    setShowProjectName(true);
+    setSelectedTemplate(null);
+  };
+
+  const handleUseStarterPack = () => {
+    setShowQuickStart(false);
+    setShowStarterPacks(true);
+  };
+
+  const handleTemplateSelect = (pack: any) => {
+    setSelectedTemplate(pack);
+    setShowStarterPacks(false);
+    setShowProjectName(true);
+  };
+
+  const handleProjectNameSubmit = async (name: string, description?: string) => {
+    setShowProjectName(false);
+    setIsCreatingProject(true);
+    
+    try {
+      if (selectedTemplate) {
+        await handleCreateProjectFromTemplate(selectedTemplate, name, description || '');
+      } else {
+        await handleCreateProject(name, description);
+      }
+    } catch (error) {
+      console.error('Error creating project:', error);
+    } finally {
+      setIsCreatingProject(false);
+      setSelectedTemplate(null);
+    }
+  };
+
+  const handleCloseModals = () => {
+    setShowQuickStart(false);
+    setShowStarterPacks(false);
+    setShowProjectName(false);
+    setSelectedTemplate(null);
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
@@ -436,6 +688,14 @@ export default function Home() {
         e.preventDefault();
         console.log('🔍 Search focus shortcut activated');
       }
+      // Debug shortcut to reset onboarding and auth
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        localStorage.removeItem('hasCompletedOnboarding');
+        localStorage.removeItem('hatchin_user');
+        console.log('🔄 Onboarding and auth reset! Refresh to see onboarding modal.');
+        window.location.reload();
+      }
     };
 
     document.addEventListener('keydown', handleKeydown);
@@ -444,6 +704,22 @@ export default function Home() {
 
   return (
     <div className="hatchin-bg-dark min-h-screen overflow-hidden">
+      {/* Onboarding System */}
+      <OnboardingManager
+        onComplete={(path, templateData) => {
+          if (path === 'idea') {
+            // Handle idea path - create Maya project
+            handleCreateIdeaProject('My Idea', 'Developing and structuring my raw idea with Maya\'s help');
+          } else if (path === 'template' && templateData) {
+            // Handle template path - create project from template
+            handleCreateProjectFromTemplate(templateData, templateData.title, templateData.description);
+          } else if (path === 'scratch') {
+            // Handle scratch path - just continue with existing projects
+            console.log('User chose to figure it out as they go');
+          }
+        }}
+      />
+      
       <div className="h-screen flex gap-3">
         <LeftSidebar
           projects={projects}
@@ -462,8 +738,14 @@ export default function Home() {
           onCreateProject={handleCreateProject}
           onCreateProjectFromTemplate={handleCreateProjectFromTemplate}
           onCreateIdeaProject={handleCreateIdeaProject}
+          onCreateTeam={handleCreateTeam}
+          onCreateAgent={handleCreateAgent}
           onDeleteTeam={handleDeleteTeam}
           onDeleteAgent={handleDeleteAgent}
+          onDeleteProject={handleDeleteProject}
+          onUpdateProject={handleUpdateProject}
+          onUpdateTeam={handleUpdateTeam}
+          onUpdateAgent={handleUpdateAgent}
         />
         
         <CenterPanel
@@ -473,6 +755,11 @@ export default function Home() {
           activeTeamId={activeTeamId}
           activeAgentId={activeAgentId}
           onAddAgent={handleCreateAgent}
+          projects={projects}
+          onCreateProject={handleCreateProject}
+          onCreateProjectFromTemplate={handleCreateProjectFromTemplate}
+          onCreateIdeaProject={handleCreateIdeaProject}
+          onAddProjectClick={handleAddProjectClick}
         />
         
         <RightSidebar
@@ -499,6 +786,29 @@ export default function Home() {
           onComplete={handlePackHatchingComplete}
         />
       )}
+      
+      {/* Shared Project Creation Modals */}
+      <QuickStartModal
+        isOpen={showQuickStart}
+        onClose={handleCloseModals}
+        onStartWithIdea={handleStartWithIdea}
+        onUseStarterPack={handleUseStarterPack}
+      />
+      
+      <StarterPacksModal
+        isOpen={showStarterPacks}
+        onClose={handleCloseModals}
+        onSelectTemplate={handleTemplateSelect}
+      />
+      
+      <ProjectNameModal
+        isOpen={showProjectName}
+        onClose={handleCloseModals}
+        onConfirm={handleProjectNameSubmit}
+        templateName={selectedTemplate?.title || ''}
+        templateDescription={selectedTemplate?.description || ''}
+        isLoading={isCreatingProject}
+      />
     </div>
   );
 }

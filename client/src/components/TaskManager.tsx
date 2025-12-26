@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   CheckCircle2, 
   Circle, 
@@ -12,6 +12,9 @@ import {
   GripVertical
 } from 'lucide-react';
 import type { Task } from '@shared/schema';
+import { TaskSuggestionModal } from './TaskSuggestionModal';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 
 interface HierarchicalTask extends Task {
   subtasks?: HierarchicalTask[];
@@ -38,8 +41,21 @@ const TaskManager: React.FC<TaskManagerProps> = ({
   agentId, 
   isConnected 
 }) => {
-  // Sample task data - simplified structure with only Urgent Tasks and Tasks
-  const [sections, setSections] = useState<TaskSection[]>([
+  // Task suggestion state
+  const [showTaskSuggestions, setShowTaskSuggestions] = useState(false);
+  const [taskSuggestions, setTaskSuggestions] = useState<any[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasNewSuggestions, setHasNewSuggestions] = useState(false);
+
+  // Task sections state - start empty by default
+  const [sections, setSections] = useState<TaskSection[]>([]);
+
+  // Check if we should show sample data (only when SEED_SAMPLE=true)
+  const shouldShowSampleData = process.env.NODE_ENV === 'development' && 
+    (window as any).SEED_SAMPLE === 'true';
+  
+  // Sample task data - only shown when SEED_SAMPLE=true
+  const sampleSections: TaskSection[] = [
     {
       id: 'urgent',
       title: 'Urgent Tasks',
@@ -306,12 +322,69 @@ const TaskManager: React.FC<TaskManagerProps> = ({
         }
       ]
     }
-  ]);
+  ];
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [dragOverSection, setDragOverSection] = useState<string | null>(null);
+
+  // Initialize sections with sample data only when SEED_SAMPLE=true
+  useEffect(() => {
+    if (shouldShowSampleData) {
+      setSections(sampleSections);
+    }
+  }, [shouldShowSampleData]);
+
+  // Fetch tasks from backend and map into sections
+  const refreshTasks = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const res = await fetch(`/api/tasks?projectId=${projectId}`);
+      if (!res.ok) return;
+      const tasks = await res.json();
+      const mapped: HierarchicalTask[] = (tasks || []).map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status || 'todo',
+        priority: (t.priority || 'medium').toLowerCase(),
+        assignee: t.assigneeId,
+        createdAt: new Date(t.createdAt),
+        updatedAt: new Date(t.updatedAt),
+        projectId: t.projectId,
+        teamId: teamId || null,
+        parentTaskId: null,
+        isExpanded: false,
+        subtasks: []
+      }));
+
+      const urgent = mapped.filter(t => t.priority === 'high');
+      const normal = mapped.filter(t => t.priority !== 'high');
+
+      setSections([
+        { id: 'urgent', title: 'Urgent Tasks', collapsed: false, tasks: urgent },
+        { id: 'team-tasks', title: 'All Team Tasks', collapsed: false, tasks: normal },
+        { id: 'completed', title: 'Completed Tasks', collapsed: true, tasks: [] }
+      ]);
+    } catch (e) {
+      console.warn('Failed to refresh tasks');
+    }
+  }, [projectId, teamId]);
+
+  useEffect(() => {
+    refreshTasks();
+  }, [refreshTasks]);
+
+  // Listen for tasks_updated events from chat and server broadcasts
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (!e?.detail?.projectId || e.detail.projectId === projectId) {
+        refreshTasks();
+      }
+    };
+    window.addEventListener('tasks_updated', handler as any);
+    return () => window.removeEventListener('tasks_updated', handler as any);
+  }, [projectId, refreshTasks]);
 
   const toggleSection = useCallback((sectionId: string) => {
     setSections(prev => prev.map(section => 
@@ -390,6 +463,104 @@ const TaskManager: React.FC<TaskManagerProps> = ({
       ...section,
       tasks: deleteTaskRecursively(section.tasks)
     })));
+  }, []);
+
+  // Task suggestion functions
+  const analyzeConversationForTasks = useCallback(async () => {
+    setIsAnalyzing(true);
+    try {
+      // Get current conversation ID (you'll need to implement this based on your chat system)
+      const conversationId = `project-${projectId}`; // This should be the actual conversation ID
+      
+      const response = await fetch('/api/task-suggestions/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId,
+          projectId,
+          teamId,
+          agentId
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.suggestions && data.suggestions.length > 0) {
+        setTaskSuggestions(data.suggestions);
+        setShowTaskSuggestions(true);
+        setHasNewSuggestions(true);
+      } else {
+        // Show a message that no tasks were suggested
+        alert('No actionable tasks found in recent conversation. Try discussing specific features or improvements!');
+      }
+    } catch (error) {
+      console.error('Error analyzing conversation for tasks:', error);
+      alert('Failed to analyze conversation for tasks. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [projectId, teamId, agentId]);
+
+  const handleApproveTasks = useCallback(async (approvedTasks: any[]) => {
+    try {
+      const response = await fetch('/api/task-suggestions/approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approvedTasks,
+          projectId
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Add the approved tasks to the appropriate section
+        const newTasks = data.createdTasks.map((task: any) => ({
+          id: task.id,
+          title: task.title,
+          status: 'todo',
+          priority: task.priority.toLowerCase(),
+          assignee: task.assigneeId, // You might need to map this to the actual assignee name
+          createdAt: new Date(task.createdAt),
+          updatedAt: new Date(task.updatedAt),
+          projectId: task.projectId,
+          teamId: teamId || null,
+          parentTaskId: null
+        }));
+
+        // Add to the appropriate section based on priority
+        setSections(prev => prev.map(section => {
+          if (section.id === 'urgent' && newTasks.some((task: any) => task.priority === 'high')) {
+            return {
+              ...section,
+              tasks: [...section.tasks, ...newTasks.filter((task: any) => task.priority === 'high')]
+            };
+          } else if (section.id === 'team-tasks') {
+            return {
+              ...section,
+              tasks: [...section.tasks, ...newTasks.filter((task: any) => task.priority !== 'high')]
+            };
+          }
+          return section;
+        }));
+
+        setHasNewSuggestions(false);
+        alert(`Successfully created ${data.createdTasks.length} tasks!`);
+      }
+    } catch (error) {
+      console.error('Error creating approved tasks:', error);
+      alert('Failed to create approved tasks. Please try again.');
+    }
+  }, [projectId, teamId]);
+
+  const handleRejectAll = useCallback(() => {
+    setTaskSuggestions([]);
+    setHasNewSuggestions(false);
   }, []);
 
   const addNewTask = useCallback(() => {
@@ -621,13 +792,15 @@ const TaskManager: React.FC<TaskManagerProps> = ({
           <Target className="w-5 h-5 text-blue-400" />
           <h3 className="font-semibold hatchin-text text-[12px]">Task Manager</h3>
         </div>
-        <button
-          onClick={() => setShowNewTaskForm(true)}
-          className="text-blue-400 hover:text-blue-300 transition-colors p-2 hover:bg-blue-400/10 rounded-lg"
-          data-testid="button-add-task"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowNewTaskForm(true)}
+            className="text-blue-400 hover:text-blue-300 transition-colors p-2 hover:bg-blue-400/10 rounded-lg"
+            data-testid="button-add-task"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
       </div>
       
       {/* New Task Form */}
@@ -717,6 +890,15 @@ const TaskManager: React.FC<TaskManagerProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Task Suggestion Modal */}
+      <TaskSuggestionModal
+        isOpen={showTaskSuggestions}
+        onClose={() => setShowTaskSuggestions(false)}
+        suggestions={taskSuggestions}
+        onApproveTasks={handleApproveTasks}
+        onRejectAll={handleRejectAll}
+      />
     </>
   );
 };

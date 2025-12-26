@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { getStorageModeInfo } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +39,21 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Phase 0.6.a: Log storage mode banner on startup
+  const storageInfo = getStorageModeInfo();
+  console.log('\n' + '='.repeat(70));
+  console.log('  STORAGE MODE: ' + storageInfo.mode.toUpperCase());
+  if (storageInfo.isDbRequested && !storageInfo.isDbImplemented) {
+    console.log('  ⚠️  DB storage requested, but DB storage not implemented.');
+    console.log('  ⚠️  Falling back to memory (NON-DURABLE).');
+  } else if (storageInfo.mode === 'memory') {
+    console.log('  ⚠️  NON-DURABLE: Restart will wipe conversations/tasks/memory.');
+  } else {
+    console.log('  ✅ DURABLE: Data persists across restarts.');
+  }
+  console.log('  Notes: ' + storageInfo.notes);
+  console.log('='.repeat(70) + '\n');
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

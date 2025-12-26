@@ -1,4 +1,5 @@
 import { OpenAI } from 'openai';
+import { Client } from "langsmith";
 import { roleProfiles } from './roleProfiles.js';
 import { trainingSystem } from './trainingSystem.js';
 import { executeColleagueLogic } from './colleagueLogic.js';
@@ -8,6 +9,11 @@ import { personalityEngine } from './personalityEvolution.js';
 // Initialize OpenAI client (conditionally)
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+}) : null;
+
+// Initialize LangSmith client for tracing
+const langsmith = process.env.LANGSMITH_API_KEY ? new Client({
+  apiKey: process.env.LANGSMITH_API_KEY,
 }) : null;
 
 interface ChatContext {
@@ -31,7 +37,7 @@ interface ColleagueResponse {
   confidence: number;
 }
 
-// B1.1: Add streaming response generation
+// B1.1: Add streaming response generation with LangSmith tracing
 export async function* generateStreamingResponse(
   userMessage: string,
   agentRole: string,
@@ -39,14 +45,66 @@ export async function* generateStreamingResponse(
   sharedMemory?: string,
   abortSignal?: AbortSignal
 ): AsyncGenerator<string, void, unknown> {
+  let runId: string | null = null;
+  
   try {
-    // Fallback to local response if no OpenAI API key
+    // Start LangSmith trace for streaming response
+    if (langsmith) {
+      try {
+        const run = await langsmith.createRun({
+          name: `Streaming Response - ${agentRole}`,
+          run_type: "chain",
+          inputs: { 
+            userMessage, 
+            agentRole, 
+            context: {
+              mode: context.mode,
+              projectName: context.projectName,
+              teamName: context.teamName
+            },
+            sharedMemory: sharedMemory || "None"
+          },
+          project_name: process.env.LANGSMITH_PROJECT || "hatchin-chat",
+          tags: ["streaming", "ai-response", agentRole.toLowerCase().replace(/\s+/g, '-')]
+        });
+        runId = run?.id;
+      } catch (error) {
+        console.warn('LangSmith trace failed, continuing without tracing:', error.message);
+        runId = null;
+      }
+    }
+    // Fallback to local but smarter templated response if no OpenAI API key
     if (!openai) {
-      const fallbackResponse = generateFallbackResponse(userMessage, agentRole, context.mode);
+      const personaPrefix = agentRole === 'Product Manager'
+        ? 'Here is a concise, action-focused reply:'
+        : agentRole === 'Product Designer'
+          ? 'Design-focused, concrete next steps:'
+          : agentRole === 'UI Engineer'
+            ? 'Frontend implementation plan:'
+            : agentRole === 'Backend Developer'
+              ? 'Backend implementation plan:'
+              : 'Thoughtful response:';
+      const fallbackResponse = `${personaPrefix} ${generateFallbackResponse(userMessage, agentRole, context.mode)}`;
       for (const word of fallbackResponse.split(' ')) {
         if (abortSignal?.aborted) break;
         yield word + ' ';
         await new Promise(resolve => setTimeout(resolve, 50)); // Simulate streaming
+      }
+      
+      // Update LangSmith trace with fallback response
+      if (langsmith && runId) {
+        try {
+          await langsmith.updateRun(runId, {
+            outputs: { 
+              response: fallbackResponse,
+              method: "fallback",
+              confidence: 0.3
+            },
+            status: "success"
+          });
+        } catch (error) {
+          console.warn('LangSmith update failed:', error.message);
+        }
       }
       return;
     }
@@ -126,8 +184,40 @@ Respond as this specific role with appropriate expertise and personality. Keep r
       }
     }
     
+    // Update LangSmith trace with successful streaming response
+    if (langsmith && runId) {
+      try {
+        await langsmith.updateRun(runId, {
+          outputs: { 
+            response: fullResponse,
+            method: "streaming",
+            confidence: calculateConfidence(fullResponse, userMessage, roleProfile),
+            tokens: fullResponse.length
+          },
+          status: "success"
+        });
+      } catch (error) {
+        console.warn('LangSmith update failed:', error.message);
+      }
+    }
+    
     console.log('✅ OpenAI streaming completed, total length:', fullResponse.length);
   } catch (error: any) {
+    // Update LangSmith trace with error
+    if (langsmith && runId) {
+      try {
+        await langsmith.updateRun(runId, {
+          outputs: { 
+            error: error.message,
+            method: "streaming"
+          },
+          status: "error"
+        });
+      } catch (updateError) {
+        console.warn('LangSmith error update failed:', updateError.message);
+      }
+    }
+    
     if (error.name === 'AbortError') {
       console.log('Streaming response cancelled by user');
       return;
@@ -142,11 +232,47 @@ export async function generateIntelligentResponse(
   agentRole: string,
   context: ChatContext
 ): Promise<ColleagueResponse> {
+  let runId: string | null = null;
+  
   try {
+    // Start LangSmith trace for intelligent response
+    if (langsmith) {
+      const run = await langsmith.createRun({
+        name: `Intelligent Response - ${agentRole}`,
+        run_type: "chain",
+        inputs: { 
+          userMessage, 
+          agentRole, 
+          context: {
+            mode: context.mode,
+            projectName: context.projectName,
+            teamName: context.teamName,
+            conversationHistory: context.conversationHistory.length
+          }
+        },
+        project_name: process.env.LANGSMITH_PROJECT || "hatchin-chat",
+        tags: ["intelligent", "ai-response", agentRole.toLowerCase().replace(/\s+/g, '-')]
+      });
+      runId = run.id;
+    }
     // Fallback to local response if no OpenAI API key
     if (!openai) {
+      const fallbackResponse = generateFallbackResponse(userMessage, agentRole, context.mode);
+      
+      // Update LangSmith trace with fallback response
+      if (langsmith && runId) {
+        await langsmith.updateRun(runId, {
+          outputs: { 
+            response: fallbackResponse,
+            method: "fallback",
+            confidence: 0.3
+          },
+          status: "success"
+        });
+      }
+      
       return {
-        content: generateFallbackResponse(userMessage, agentRole, context.mode),
+        content: fallbackResponse,
         confidence: 0.3,
         reasoning: 'Local fallback response (OpenAI API key not available)'
       };
@@ -229,6 +355,19 @@ export async function generateIntelligentResponse(
     // Calculate confidence based on response quality
     const confidence = calculateConfidence(responseContent, userMessage, roleProfile);
 
+    // Update LangSmith trace with successful response
+    if (langsmith && runId) {
+      await langsmith.updateRun(runId, {
+        outputs: { 
+          content: responseContent,
+          confidence,
+          reasoning: `Generated using ${agentRole} expertise and conversation context${logicResult.shouldExecute ? ' with custom logic' : ''}`,
+          method: "intelligent"
+        },
+        status: "success"
+      });
+    }
+
     return {
       content: responseContent,
       confidence,
@@ -236,6 +375,17 @@ export async function generateIntelligentResponse(
     };
 
   } catch (error) {
+    // Update LangSmith trace with error
+    if (langsmith && runId) {
+      await langsmith.updateRun(runId, {
+        outputs: { 
+          error: error.message,
+          method: "intelligent"
+        },
+        status: "error"
+      });
+    }
+    
     console.error('OpenAI API Error:', error);
     
     // Fallback to keyword-based response if OpenAI fails

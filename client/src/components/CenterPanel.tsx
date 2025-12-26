@@ -1,5 +1,5 @@
 import { Send } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { Project, Team, Agent } from "@shared/schema";
 import { useWebSocket, getWebSocketUrl, getConnectionStatusConfig } from '@/lib/websocket';
 import { MessageBubble } from './MessageBubble';
@@ -9,6 +9,9 @@ import { useThreadNavigation } from '@/hooks/useThreadNavigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { AddHatchModal } from './AddHatchModal';
+import { TaskApprovalModal } from './TaskApprovalModal';
+import { buildConversationId } from '@/lib/conversationId';
+import { devLog } from '@/lib/devLog';
 
 type ChatMode = 'project' | 'team' | 'agent';
 
@@ -26,6 +29,12 @@ interface CenterPanelProps {
   activeTeamId: string | null;
   activeAgentId: string | null;
   onAddAgent: (agent: Omit<Agent, 'id'>) => void;
+  // Add props for empty state functionality
+  projects: Project[];
+  onCreateProject: (name: string, description?: string) => void;
+  onCreateProjectFromTemplate: (templateData: any, name: string, description: string) => void;
+  onCreateIdeaProject: (name: string, description: string) => void;
+  onAddProjectClick: () => void;
 }
 
 export function CenterPanel({
@@ -35,7 +44,52 @@ export function CenterPanel({
   activeTeamId,
   activeAgentId,
   onAddAgent,
+  projects,
+  onCreateProject,
+  onCreateProjectFromTemplate,
+  onCreateIdeaProject,
+  onAddProjectClick,
 }: CenterPanelProps) {
+  // === EMPTY STATE LOGIC ===
+  
+  // Debug logging
+  console.log('CenterPanel: projects.length =', projects.length);
+  console.log('CenterPanel: projects =', projects);
+  
+  // Show empty state when no projects exist
+  if (projects.length === 0) {
+    console.log('CenterPanel: Showing empty state');
+    return (
+      <main className="flex-1 hatchin-bg-panel rounded-2xl flex flex-col my-2.5">
+        {/* Empty State Content */}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div className="max-w-lg">
+            {/* Chicken hatching emoji */}
+            <div className="text-[48px] mb-4">🐣</div>
+            
+            {/* Subtitle */}
+            <h2 className="font-semibold hatchin-text text-lg mb-2">
+              Create your first project
+            </h2>
+            
+            {/* Tagline */}
+            <p className="hatchin-text-muted text-sm mb-8">
+              Your dreams await
+            </p>
+            
+            {/* Add Project Button - at the bottom, no icon */}
+            <button
+              onClick={onAddProjectClick}
+              className="hatchin-bg-blue text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
+            >
+              Add Project
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   // === SUBTASK 2.1.1: Core State Integration ===
   
   // Chat mode state management
@@ -70,6 +124,32 @@ export function CenterPanel({
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [streamingContent, setStreamingContent] = useState('');
   const [streamingAgent, setStreamingAgent] = useState<string | null>(null);
+  const streamingTimeoutRef = useRef<number | null>(null);
+
+  const clearStreamingTimeout = () => {
+    if (streamingTimeoutRef.current) {
+      clearTimeout(streamingTimeoutRef.current);
+      streamingTimeoutRef.current = null;
+    }
+  };
+
+  const resetStreamingTimeout = () => {
+    clearStreamingTimeout();
+    streamingTimeoutRef.current = window.setTimeout(() => {
+      console.warn('⏳ Streaming watchdog timeout - clearing streaming state');
+      // Mark placeholder as failed if still present
+      if (currentChatContext && streamingMessageId) {
+        updateMessageInConversation(currentChatContext.conversationId, streamingMessageId, {
+          status: 'failed',
+          metadata: { isStreaming: false }
+        });
+      }
+      setIsStreaming(false);
+      setStreamingMessageId(null);
+      setStreamingContent('');
+      setStreamingAgent(null);
+    }, 20000); // 20s watchdog
+  };
 
   // C1: Reply state management
   const [replyingTo, setReplyingTo] = useState<{
@@ -83,7 +163,19 @@ export function CenterPanel({
   // === SUBTASK 3.1.1: Connect WebSocket to Chat UI ===
   
   // WebSocket connection for real-time messaging
-  const webSocketUrl = getWebSocketUrl();
+  // Compute URL once per mount to prevent initialization instability
+  const webSocketUrl = useMemo(() => {
+    const url = getWebSocketUrl();
+    // Validate URL is not empty or invalid
+    if (!url || url.includes(':undefined') || url.trim() === '') {
+      console.error('[WebSocket] Invalid URL generated:', url);
+      // Return a safe fallback URL
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      return `${protocol}//${window.location.host}/ws`;
+    }
+    return url;
+  }, []); // Empty deps: compute once per mount only
+  
   const { connectionStatus, sendMessage: sendWebSocketMessage, lastMessage } = useWebSocket(webSocketUrl, {
     onMessage: (message) => {
       console.log('Received WebSocket message:', message);
@@ -137,6 +229,18 @@ export function CenterPanel({
   const sendMessageWithConfirmation = async (messageData: any, tempMessageId: string) => {
     try {
       if (connectionStatus === 'connected') {
+        // Validate that the message is being sent to the correct conversation
+        const messageConversationId = messageData.message?.conversationId;
+        const currentConversationId = currentChatContext?.conversationId;
+        
+        if (messageConversationId !== currentConversationId) {
+          console.warn('🚫 Preventing message send - conversation context mismatch:', {
+            messageConversation: messageConversationId,
+            currentConversation: currentConversationId
+          });
+          return;
+        }
+        
         // Send through WebSocket
         sendWebSocketMessage(messageData);
         
@@ -174,24 +278,49 @@ export function CenterPanel({
   
   // Track recently sent message IDs to prevent echo
   const [recentlySentIds, setRecentlySentIds] = useState<Set<string>>(new Set());
+  
+  // Track processed message IDs to prevent duplicates
+  const [processedMessageIds, setProcessedMessageIds] = useState<Set<string>>(new Set());
+
+  // Task suggestion state (inline approval)
+  const [suggestedTasks, setSuggestedTasks] = useState<any[]>([]);
+  const [taskSuggestionContext, setTaskSuggestionContext] = useState<{
+    conversationId: string;
+    projectId: string;
+  } | null>(null);
+  const [isApprovingTasks, setIsApprovingTasks] = useState(false);
+  const [showTaskApprovalModal, setShowTaskApprovalModal] = useState(false);
 
   // Handle incoming WebSocket messages
   const handleIncomingMessage = (message: any) => {
     console.log('🔔 Received WebSocket message:', message.type, message);
+    console.log('🔍 Current chat context:', currentChatContext?.conversationId);
     
     if (message.type === 'new_message') {
       const messageId = message.message.id;
       
-      // Skip if this is an echo of our own message
-      if (messageId && messageId.startsWith('temp-')) {
-        console.log('Ignoring temp message echo:', messageId);
-        return;
-      }
-      
-      // Skip if user sent this message (we already have it locally)
-      if (message.message.userId === 'user') {
-        console.log('Ignoring user message echo:', messageId);
-        return;
+      // Enhanced duplicate prevention
+      if (messageId) {
+        // Skip if already processed
+        if (processedMessageIds.has(messageId)) {
+          console.log('❌ Skipping already processed message:', messageId);
+          return;
+        }
+        
+        // Skip if this is an echo of our own message
+        if (messageId.startsWith('temp-')) {
+          console.log('Ignoring temp message echo:', messageId);
+          return;
+        }
+        
+        // Skip if user sent this message (we already have it locally)
+        if (message.message.userId === 'user') {
+          console.log('Ignoring user message echo:', messageId);
+          return;
+        }
+        
+        // Mark as processed immediately to prevent race conditions
+        setProcessedMessageIds(prev => new Set([...prev, messageId]));
       }
 
       // Get the actual agent name instead of defaulting to 'Colleague'
@@ -216,13 +345,35 @@ export function CenterPanel({
         metadata: message.message.metadata
       };
 
+      // Validate conversation context - only process messages for current context
+      const isCurrentConversation = currentChatContext?.conversationId === newMessage.conversationId;
+      
+      if (!isCurrentConversation) {
+        console.log('⚠️ Ignoring message from different conversation:', {
+          messageConversation: newMessage.conversationId,
+          currentConversation: currentChatContext?.conversationId
+        });
+        return;
+      }
+      
       // Add incoming message to appropriate conversation
       const conversationMessages = allMessages[newMessage.conversationId] || [];
       const exists = conversationMessages.some(msg => msg.id === newMessage.id);
       
+      console.log('🔍 Message deduplication check:', {
+        messageId: newMessage.id,
+        conversationId: newMessage.conversationId,
+        currentContext: currentChatContext?.conversationId,
+        exists,
+        totalMessages: conversationMessages.length,
+        processedIds: processedMessageIds.size
+      });
+      
       if (!exists) {
         addMessageToConversation(newMessage.conversationId, newMessage);
-        console.log('Received message for conversation:', newMessage.conversationId);
+        console.log('✅ Added new message to conversation:', newMessage.conversationId);
+      } else {
+        console.log('❌ Skipped duplicate message:', newMessage.id);
       }
     } else if (message.type === 'message_delivered') {
       // Update message status to delivered in appropriate conversation
@@ -234,6 +385,24 @@ export function CenterPanel({
     // B1.2: Handle streaming messages
     else if (message.type === 'streaming_started') {
       console.log('🟢 Streaming started:', message.messageId, message.agentName);
+
+      // Guard against duplicate placeholders for the same streaming message
+      if (streamingMessageId === message.messageId) {
+        console.log('⏭️ Skipping duplicate streaming_started for same messageId');
+        return;
+      }
+
+      const convId = currentChatContext?.conversationId || '';
+      const convMsgs = allMessages[convId] || [];
+      const hasDuplicate = convMsgs.some(m =>
+        m.id === message.messageId ||
+        (m.status === 'streaming' && m.senderId === (message.agentId || 'ai-agent'))
+      );
+      if (hasDuplicate) {
+        console.log('⏭️ Skipping streaming placeholder; duplicate detected');
+        return;
+      }
+
       setIsStreaming(true);
       setStreamingMessageId(message.messageId);
       setStreamingContent('');
@@ -262,11 +431,12 @@ export function CenterPanel({
         parentMessageId: message.parentMessageId || undefined,
         threadRootId: message.threadRootId || undefined,
         threadDepth: message.threadDepth || 0,
-        metadata: {}
+        metadata: { isStreaming: true }
       };
       
       console.log('Creating streaming placeholder message:', message.messageId, 'for agent:', message.agentName);
       addMessageToConversation(currentChatContext?.conversationId || '', streamingMessage);
+      resetStreamingTimeout();
     }
     else if (message.type === 'streaming_chunk') {
       console.log('📦 Streaming chunk:', message.chunk);
@@ -284,10 +454,12 @@ export function CenterPanel({
           );
           return { ...prev, [conversationId]: updatedMessages };
         });
+        resetStreamingTimeout();
       }
     }
     else if (message.type === 'streaming_completed') {
       console.log('✅ Streaming completed');
+      clearStreamingTimeout();
       
       // Add the completed message to conversation
       if (message.message) {
@@ -354,6 +526,21 @@ export function CenterPanel({
     }
     else if (message.type === 'streaming_cancelled') {
       console.log('🛑 Streaming cancelled');
+      clearStreamingTimeout();
+      setIsStreaming(false);
+      setStreamingMessageId(null);
+      setStreamingContent('');
+      setStreamingAgent(null);
+    }
+    else if (message.type === 'streaming_error') {
+      console.log('❌ Streaming error received');
+      clearStreamingTimeout();
+      if (currentChatContext && streamingMessageId) {
+        updateMessageInConversation(currentChatContext.conversationId, streamingMessageId, {
+          status: 'failed',
+          metadata: { isStreaming: false }
+        });
+      }
       setIsStreaming(false);
       setStreamingMessageId(null);
       setStreamingContent('');
@@ -361,6 +548,24 @@ export function CenterPanel({
     }
     else if (message.type === 'connection_confirmed') {
       console.log('🔌 WebSocket connection confirmed for:', message.conversationId);
+    }
+    else if (message.type === 'task_suggestions') {
+      console.log('🎯 Received task suggestions:', message.tasks);
+      setSuggestedTasks(message.tasks);
+      setTaskSuggestionContext({
+        conversationId: message.conversationId,
+        projectId: message.projectId
+      });
+      setShowTaskApprovalModal(true);
+      // Inline approval UI will render at the bottom of message list
+    }
+    else if (message.type === 'task_created') {
+      try {
+        const evt = new CustomEvent('tasks_updated', { detail: { projectId: message.data?.projectId } });
+        window.dispatchEvent(evt);
+      } catch (e) {
+        console.warn('Failed to dispatch tasks_updated');
+      }
     }
   };
 
@@ -427,6 +632,12 @@ export function CenterPanel({
       }));
     }
   }, [apiMessages, currentChatContext]);
+
+  // Cleanup processed message IDs when conversation changes
+  useEffect(() => {
+    setProcessedMessageIds(new Set());
+    console.log('🧹 Cleaned up processed message IDs for new conversation');
+  }, [currentChatContext?.conversationId]);
 
   // C1.3: Thread navigation state
   const currentMessages = getCurrentMessages();
@@ -622,6 +833,12 @@ export function CenterPanel({
       return;
     }
 
+    devLog('CHAT_CONTEXT_COMPUTING', {
+      activeProjectId: activeProject.id,
+      activeTeamId,
+      activeAgentId
+    });
+
     // Implement chatMode derivation logic based on sidebar selections
     let newMode: ChatMode;
     let participantIds: string[];
@@ -631,20 +848,28 @@ export function CenterPanel({
       // Agent mode: Talk to specific agent (1-on-1)
       newMode = 'agent';
       participantIds = [activeAgentId];
-      conversationId = `agent-${activeProject.id}-${activeAgentId}`;
+      conversationId = buildConversationId('agent', activeProject.id, activeAgentId);
     } else if (activeTeamId) {
       // Team mode: Talk to all agents under specific team
       newMode = 'team';
       participantIds = activeProjectAgents
         .filter(agent => agent.teamId === activeTeamId)
         .map(agent => agent.id);
-      conversationId = `team-${activeProject.id}-${activeTeamId}`;
+      conversationId = buildConversationId('team', activeProject.id, activeTeamId);
     } else {
       // Project mode: Talk to all teams and agents under project
       newMode = 'project';
       participantIds = activeProjectAgents.map(agent => agent.id);
-      conversationId = `project-${activeProject.id}`;
+      conversationId = buildConversationId('project', activeProject.id);
     }
+
+    devLog('CHAT_CONTEXT_COMPUTED', {
+      mode: newMode,
+      conversationId,
+      projectId: activeProject.id,
+      teamId: activeTeamId || null,
+      agentId: activeAgentId || null
+    });
 
     // Update chat mode and context
     setChatMode(newMode);
@@ -1048,6 +1273,7 @@ export function CenterPanel({
     setReplyingTo(null);
   };
 
+
   const handleActionClick = async (action: string) => {
     if (!currentChatContext) return;
     
@@ -1118,27 +1344,32 @@ export function CenterPanel({
           // Set streaming state immediately to show typing indicator
           setIsStreaming(true);
           
-          // Send via WebSocket with metadata
-          const wsMessage = {
-            type: 'send_message_streaming',
-            conversationId: currentChatContext.conversationId,
-            message: {
-              ...userMessage,
-              userId: 'user',
-              metadata: {
-                routing: {
-                  mode: currentChatContext.mode,
-                  projectId: activeProject?.id,
-                  teamId: activeTeamId,
-                  agentId: activeAgentId
-                },
-                memory: getSharedProjectMemory()
-              }
+        // Send via WebSocket with metadata
+        const wsMessage = {
+          type: 'send_message_streaming',
+          conversationId: currentChatContext.conversationId,
+          message: {
+            ...userMessage,
+            userId: 'user',
+            metadata: {
+              routing: {
+                mode: currentChatContext.mode,
+                projectId: activeProject?.id,
+                teamId: activeTeamId,
+                agentId: activeAgentId
+              },
+              memory: getSharedProjectMemory()
             }
-          };
-          
-          sendWebSocketMessage(wsMessage);
-          console.log(`Sent ${action} prompt:`, message);
+          }
+        };
+        
+        sendWebSocketMessage(wsMessage);
+        console.log(`Sent ${action} prompt:`, message);
+        
+        devLog('SEND_DISPATCHED', {
+          mode: currentChatContext.mode,
+          conversationId: currentChatContext.conversationId
+        });
         } else {
           console.error('Cannot send message: validation failed');
         }
@@ -1156,6 +1387,14 @@ export function CenterPanel({
     if (input.value.trim()) {
       const messageContext = validateMessageContext();
       const recipients = getMessageRecipients();
+      
+      devLog('SEND_ATTEMPT', {
+        mode: currentChatContext?.mode,
+        conversationId: currentChatContext?.conversationId,
+        messageLength: input.value.length,
+        messagePreview: input.value.substring(0, 30),
+        connectionStatus
+      });
       
       if (messageContext.canSendMessage) {
         const tempMessageId = `temp-${Date.now()}`;
@@ -1239,6 +1478,15 @@ export function CenterPanel({
         
         sendMessageWithConfirmation(streamingMessageData, tempMessageId);
         
+        devLog('SEND_DISPATCHED', {
+          mode: currentChatContext?.mode,
+          conversationId: currentChatContext?.conversationId
+        });
+        
+        // Show immediate typing indicator for better UX
+        setIsStreaming(true);
+        setStreamingAgent('AI Agent');
+        
         // Clear input and reply state immediately after sending
         input.value = '';
         if (replyingTo) {
@@ -1252,7 +1500,13 @@ export function CenterPanel({
         // Trigger colleague response after short delay - only if context hasn't changed
         setTimeout(() => {
           if (contextId && currentChatContext?.conversationId === contextId) {
+            console.log('🤖 Triggering colleague response for conversation:', contextId);
             simulateColleagueResponse(messageContent, contextId);
+          } else {
+            console.log('⚠️ Skipping colleague response - context changed:', {
+              originalContext: contextId,
+              currentContext: currentChatContext?.conversationId
+            });
           }
         }, 500);
       } else {
@@ -1263,13 +1517,97 @@ export function CenterPanel({
 
   if (!activeProject) {
     return (
-      <main className="flex-1 hatchin-bg-panel rounded-2xl flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-6">🐣</div>
-          <h2 className="text-2xl font-semibold mb-4 hatchin-text">Welcome to Hatchin</h2>
-          <p className="hatchin-text-muted">
-            Build AI teammates that understand your goals and help you achieve them.
-          </p>
+      <main className="flex-1 hatchin-bg-panel rounded-2xl flex flex-col my-2.5">
+        {/* Chat Header */}
+        <div className="px-6 py-4 hatchin-border border-b">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <h1 className="font-semibold hatchin-text text-lg">
+                General Chat
+              </h1>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <span className="hatchin-text-muted font-medium text-[12px]">
+              Chat with AI • Create a project to get started
+            </span>
+          </div>
+        </div>
+        
+        {/* Message Display Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Welcome Screen - Show when no messages */}
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="max-w-lg">
+              <div className="text-[36px] mt-[0px] mb-[0px]">🐣</div>
+              <h2 className="font-semibold hatchin-text mt-[2px] mb-[2px] text-[16px]">Welcome to Hatchin</h2>
+              <p className="hatchin-text-muted text-[14px] mt-[0px] mb-[0px]">
+                Build AI teammates that understand your goals and help you achieve them.
+              </p>
+              
+              <div className="flex flex-wrap gap-3 justify-center pt-[11px] pb-[11px]">
+                <button 
+                  onClick={() => handleActionClick('generateRoadmap')}
+                  className="hatchin-bg-card hover:bg-hatchin-border hatchin-text px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Help me plan a project
+                </button>
+                <button 
+                  onClick={() => handleActionClick('setGoals')}
+                  className="hatchin-bg-card hover:bg-hatchin-border hatchin-text px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Set project goals
+                </button>
+                <button 
+                  onClick={() => handleActionClick('summarizeTasks')}
+                  className="hatchin-bg-card hover:bg-hatchin-border hatchin-text px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  What should I work on?
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Chat Input */}
+        <div className="p-6 hatchin-border border-t">
+          <form onSubmit={handleChatSubmit} className="relative">
+            <input 
+              name="message"
+              type="text" 
+              placeholder="Ask me anything about your project ideas..."
+              disabled={isStreaming}
+              autoComplete="off"
+              className={`w-full hatchin-bg-card hatchin-border border rounded-lg px-4 py-3 text-sm hatchin-text placeholder-hatchin-text-muted focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent ${
+                isStreaming ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            />
+            {isStreaming ? (
+              <button 
+                type="button"
+                onClick={() => {
+                  if (streamingMessageId) {
+                    sendWebSocketMessage({
+                      type: 'cancel_streaming',
+                      messageId: streamingMessageId
+                    });
+                  }
+                }}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500 hover:text-red-400 transition-colors"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="6" y="6" width="12" height="12" />
+                </svg>
+              </button>
+            ) : (
+              <button 
+                type="submit"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 hatchin-blue hover:text-opacity-80 transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            )}
+          </form>
         </div>
       </main>
     );
@@ -1559,8 +1897,13 @@ export function CenterPanel({
                 }))
               )}
               
-              {/* Typing Indicators - Show with proper agent info */}
-              {isStreaming && streamingAgent && (
+              {/* Typing Indicators - Show only if no streaming placeholder exists */}
+                {(() => {
+                  const currentMsgs = getCurrentMessages();
+                  const hasStreamingPlaceholder = currentMsgs.some(m => m.status === 'streaming' || m.metadata?.isStreaming);
+                  // Hide banner if a placeholder exists OR a placeholder is about to be created (streamingMessageId already set)
+                  return isStreaming && streamingAgent && !hasStreamingPlaceholder && !streamingMessageId;
+                })() && (
                 <div className="flex justify-start">
                   <div className="flex items-start gap-3 max-w-[85%]">
                     <div className="w-8 h-8 rounded-full bg-hatchin-text-muted flex items-center justify-center flex-shrink-0 mt-1">
@@ -1580,6 +1923,73 @@ export function CenterPanel({
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Inline Task Approval UI */}
+              {suggestedTasks.length > 0 && taskSuggestionContext && (
+                <div className="mt-2 p-4 border border-gray-700 rounded-xl bg-[#2b2f36]">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="hatchin-text font-medium text-sm">Suggested tasks from this conversation</div>
+                    <span className="text-xs hatchin-text-muted">{suggestedTasks.length} item(s)</span>
+                  </div>
+                  <ul className="space-y-2 mb-3">
+                    {suggestedTasks.map((t, idx) => (
+                      <li key={idx} className="text-sm">
+                        <span className="font-medium hatchin-text">{t.title}</span>
+                        {t.description && (
+                          <span className="hatchin-text-muted"> — {t.description}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={isApprovingTasks}
+                      onClick={async () => {
+                        if (!taskSuggestionContext) return;
+                        setIsApprovingTasks(true);
+                        try {
+                          const response = await fetch('/api/task-suggestions/approve', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              approvedTasks: suggestedTasks,
+                              projectId: taskSuggestionContext.projectId
+                            })
+                          });
+                          if (response.ok) {
+                            try {
+                              const evt = new CustomEvent('tasks_updated', { detail: { projectId: taskSuggestionContext.projectId } });
+                              window.dispatchEvent(evt);
+                            } catch {}
+                            setSuggestedTasks([]);
+                            setTaskSuggestionContext(null);
+                            setShowTaskApprovalModal(false);
+                          } else {
+                            console.error('Failed to approve tasks');
+                          }
+                        } catch (e) {
+                          console.error('Approve tasks error', e);
+                        } finally {
+                          setIsApprovingTasks(false);
+                        }
+                      }}
+                      className="px-3 py-2 bg-blue-500 text-white rounded-md text-xs hover:bg-blue-600 disabled:opacity-60"
+                    >
+                      {isApprovingTasks ? 'Creating…' : 'Approve & Create'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSuggestedTasks([]);
+                        setTaskSuggestionContext(null);
+                        setShowTaskApprovalModal(false);
+                      }}
+                      className="px-3 py-2 bg-gray-700 text-white rounded-md text-xs hover:bg-gray-600"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 </div>
               )}
@@ -1660,6 +2070,46 @@ export function CenterPanel({
         existingAgents={activeProjectAgents}
         activeTeamId={activeTeamId}
       />
+
+      {/* Task Approval Modal */}
+      <TaskApprovalModal
+        isOpen={showTaskApprovalModal}
+        onClose={() => {
+          setShowTaskApprovalModal(false);
+          setSuggestedTasks([]);
+          setTaskSuggestionContext(null);
+        }}
+        tasks={suggestedTasks}
+        onApproveTasks={async (approvedTasks) => {
+          try {
+            // Create tasks via API
+            const response = await fetch('/api/task-suggestions/approve', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                approvedTasks,
+                projectId: taskSuggestionContext?.projectId
+              })
+            });
+
+            if (response.ok) {
+              console.log('✅ Tasks created successfully');
+              // Close modal
+              setShowTaskApprovalModal(false);
+              setSuggestedTasks([]);
+              setTaskSuggestionContext(null);
+            } else {
+              console.error('❌ Failed to create tasks');
+            }
+          } catch (error) {
+            console.error('Error creating tasks:', error);
+          }
+        }}
+        projectName={activeProject?.name || 'Project'}
+      />
+      
     </main>
   );
 }

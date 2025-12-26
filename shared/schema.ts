@@ -39,6 +39,7 @@ export const teams = pgTable("teams", {
   isExpanded: boolean("is_expanded").notNull().default(true),
 });
 
+
 export const agents = pgTable("agents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),

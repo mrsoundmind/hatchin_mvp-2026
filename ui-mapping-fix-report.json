@@ -1,0 +1,94 @@
+{
+  "testSummary": {
+    "uiMappingTest": true,
+    "brokenLogicComparison": {
+      "urgentTasks": 1,
+      "teamTasks": 0,
+      "tasksSection": 0,
+      "totalMapped": 1
+    },
+    "fixApplied": true,
+    "totalDuration": 164.12462500000004
+  },
+  "details": {
+    "testTasks": [
+      {
+        "id": "task-1",
+        "title": "High Priority Authentication Task",
+        "priority": "High",
+        "assigneeId": "user-1"
+      },
+      {
+        "id": "task-2",
+        "title": "Medium Priority UI Task",
+        "priority": "Medium",
+        "assigneeId": "user-2"
+      },
+      {
+        "id": "task-3",
+        "title": "Low Priority Documentation Task",
+        "priority": "Low",
+        "assigneeId": "user-3"
+      }
+    ],
+    "mappedSections": [
+      {
+        "id": "urgent",
+        "title": "Urgent Tasks",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "High Priority Authentication Task",
+            "status": "todo",
+            "priority": "high",
+            "assignee": "user-1",
+            "createdAt": "2025-09-30T06:28:10.342Z",
+            "updatedAt": "2025-09-30T06:28:10.342Z",
+            "projectId": "test-project",
+            "teamId": null,
+            "parentTaskId": null
+          }
+        ]
+      },
+      {
+        "id": "team-tasks",
+        "title": "All Team Tasks",
+        "tasks": [
+          {
+            "id": "task-2",
+            "title": "Medium Priority UI Task",
+            "status": "todo",
+            "priority": "medium",
+            "assignee": "user-2",
+            "createdAt": "2025-09-30T06:28:10.342Z",
+            "updatedAt": "2025-09-30T06:28:10.342Z",
+            "projectId": "test-project",
+            "teamId": null,
+            "parentTaskId": null
+          },
+          {
+            "id": "task-3",
+            "title": "Low Priority Documentation Task",
+            "status": "todo",
+            "priority": "low",
+            "assignee": "user-3",
+            "createdAt": "2025-09-30T06:28:10.342Z",
+            "updatedAt": "2025-09-30T06:28:10.342Z",
+            "projectId": "test-project",
+            "teamId": null,
+            "parentTaskId": null
+          }
+        ]
+      },
+      {
+        "id": "completed",
+        "title": "Completed Tasks",
+        "tasks": []
+      }
+    ],
+    "urgentTasks": 1,
+    "teamTasks": 2,
+    "highPriorityTasks": 1,
+    "nonHighPriorityTasks": 2
+  }
+}

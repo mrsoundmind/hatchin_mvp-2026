@@ -1,6 +1,46 @@
-import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent, type Conversation, type InsertConversation, type Message, type InsertMessage, type MessageReaction, type InsertMessageReaction, type TypingIndicator, type InsertTypingIndicator } from "@shared/schema";
+import { type User, type InsertUser, type Project, type InsertProject, type Team, type InsertTeam, type Agent, type InsertAgent, type Conversation, type InsertConversation, type Message, type InsertMessage, type MessageReaction, type InsertMessageReaction, type TypingIndicator, type InsertTypingIndicator, type Task, type InsertTask } from "@shared/schema";
 import { starterPacksByCategory, allHatchTemplates } from "@shared/templates";
+import { parseConversationId } from "@shared/conversationId";
 import { randomUUID } from "crypto";
+
+// Phase 0.6.a: Storage Mode Declaration
+export type StorageMode = "memory" | "db";
+
+/**
+ * Canonical storage mode declaration.
+ * 
+ * Determines which storage backend is used at runtime.
+ * - "memory": In-memory Maps (non-durable, data lost on restart)
+ * - "db": Database storage (durable, persists across restarts) - NOT YET IMPLEMENTED
+ * 
+ * Can be overridden via STORAGE_MODE environment variable.
+ * Default: "memory"
+ */
+export const STORAGE_MODE: StorageMode = (process.env.STORAGE_MODE as StorageMode) || "memory";
+
+/**
+ * Get storage mode information for status endpoints and logging.
+ */
+export function getStorageModeInfo() {
+  const mode = STORAGE_MODE;
+  const isDbRequested = mode === "db";
+  const isDbImplemented = false; // Phase 1 will implement DBStorage
+  const actualMode: StorageMode = isDbRequested && !isDbImplemented ? "memory" : mode;
+  const durable = actualMode === "db" && isDbImplemented;
+  
+  return {
+    mode: actualMode,
+    requestedMode: mode,
+    durable,
+    isDbRequested,
+    isDbImplemented,
+    notes: actualMode === "memory" 
+      ? "In-memory Maps. Data resets on restart."
+      : isDbRequested && !isDbImplemented
+      ? "DB storage requested but not implemented. Using memory (NON-DURABLE)."
+      : "Database storage. Data persists across restarts."
+  };
+}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -43,6 +83,13 @@ export interface IStorage {
   getArchivedConversations(projectId: string): Promise<Conversation[]>;
   deleteConversation(conversationId: string): Promise<boolean>;
   
+  // Task methods
+  getTasksByProject(projectId: string): Promise<Task[]>;
+  getTasksByAssignee(assigneeId: string): Promise<Task[]>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: string, updates: Partial<Task>): Promise<Task | undefined>;
+  deleteTask(id: string): Promise<boolean>;
+  
   // Chat methods
   getConversationsByProject(projectId: string): Promise<Conversation[]>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -77,6 +124,7 @@ export class MemStorage implements IStorage {
   private messageReactions: Map<string, MessageReaction>;
   private typingIndicators: Map<string, TypingIndicator>;
   private conversationMemories: Map<string, any[]>; // B3: Cross-agent memory storage
+  private tasks: Map<string, Task>; // Task storage
 
   constructor() {
     this.users = new Map();
@@ -88,8 +136,9 @@ export class MemStorage implements IStorage {
     this.messageReactions = new Map();
     this.typingIndicators = new Map();
     this.conversationMemories = new Map(); // B3: Initialize memory storage
+    this.tasks = new Map(); // Initialize task storage
     
-    // Initialize with sample data matching the prototype
+    // Seed demo data to match reference image
     this.initializeSampleData();
   }
 
@@ -193,69 +242,7 @@ export class MemStorage implements IStorage {
     };
     this.agents.set(qaLead.id, qaLead);
 
-    // Create other projects
-    const otherProjects: Project[] = [
-      {
-        id: "creative-studio",
-        name: "Creative Studio",
-        emoji: "🎨",
-        description: "Creative agency project",
-        color: "purple",
-        isExpanded: false,
-        progress: 25,
-        timeSpent: "15h 30m",
-        coreDirection: {},
-        executionRules: null,
-        teamCulture: null,
-        brain: {},
-      },
-      {
-        id: "influencer-brand",
-        name: "Influencer Brand",
-        emoji: "📱",
-        description: "Personal brand development",
-        color: "green",
-        isExpanded: false,
-        progress: 60,
-        timeSpent: "28h 45m",
-        coreDirection: {},
-        executionRules: null,
-        teamCulture: null,
-        brain: {},
-      },
-      {
-        id: "consulting-firm",
-        name: "Consulting Firm",
-        emoji: "💼",
-        description: "Business consulting services",
-        color: "amber",
-        isExpanded: false,
-        progress: 80,
-        timeSpent: "45h 20m",
-        coreDirection: {},
-        executionRules: null,
-        teamCulture: null,
-        brain: {},
-      },
-      {
-        id: "tech-incubator",
-        name: "Tech Incubator",
-        emoji: "🚀",
-        description: "Startup incubator program",
-        color: "blue",
-        isExpanded: false,
-        progress: 30,
-        timeSpent: "22h 10m",
-        coreDirection: {},
-        executionRules: null,
-        teamCulture: null,
-        brain: {},
-      },
-    ];
-
-    otherProjects.forEach(project => {
-      this.projects.set(project.id, project);
-    });
+    // Only keep SaaS Startup project - other projects removed per user request
     
     // B3: Initialize sample memory for testing cross-agent memory
     this.conversationMemories.set("project-saas-startup", [
@@ -337,7 +324,12 @@ export class MemStorage implements IStorage {
   }
 
   async deleteProject(id: string): Promise<boolean> {
-    return this.projects.delete(id);
+    console.log('🗑️ Storage.deleteProject called with id:', id);
+    console.log('🗑️ Projects before delete:', Array.from(this.projects.keys()));
+    const result = this.projects.delete(id);
+    console.log('🗑️ Delete result:', result);
+    console.log('🗑️ Projects after delete:', Array.from(this.projects.keys()));
+    return result;
   }
 
   // Team methods
@@ -593,9 +585,18 @@ export class MemStorage implements IStorage {
     return conversations;
   }
 
-  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+  async createConversation(conversation: InsertConversation & { id?: string }): Promise<Conversation> {
+    // Phase 1.2.b: Support custom ID for canonical conversations (idempotent)
+    // If id is provided, use it; otherwise generate UUID
+    const conversationId = (conversation as any).id || randomUUID();
+    
+    // Check if conversation with this ID already exists (idempotent)
+    if (this.conversations.has(conversationId)) {
+      return this.conversations.get(conversationId)!;
+    }
+    
     const newConversation: Conversation = {
-      id: randomUUID(),
+      id: conversationId,
       projectId: conversation.projectId,
       teamId: conversation.teamId || null,
       agentId: conversation.agentId || null,
@@ -777,9 +778,66 @@ export class MemStorage implements IStorage {
     
     // Search all conversation memories for project-related conversations
     for (const [conversationId, memories] of this.conversationMemories) {
-      // Check if conversation ID belongs to this project
-      if (conversationId.includes(projectId)) {
-        projectMemories.push(...memories);
+      // Use contract-based parsing to safely determine if conversation belongs to this project
+      try {
+        // First, try parsing without knownProjectId to get the actual projectId
+        // This prevents substring false positives (e.g., "saas" matching "saas-startup")
+        let parsed;
+        try {
+          parsed = parseConversationId(conversationId);
+        } catch (error: any) {
+          // If parsing fails due to ambiguity, use knownProjectId to help disambiguate
+          // BUT verify that the conversationId actually belongs to this project (not a substring match)
+          if (error.message.includes('Ambiguous conversation ID')) {
+            // Check if conversationId starts with the exact projectId prefix
+            // This ensures "team-saas-" matches when projectId="saas", but "team-saas-startup-"
+            // only matches when projectId="saas-startup" (not when projectId="saas")
+            const teamPrefix = `team-${projectId}-`;
+            const agentPrefix = `agent-${projectId}-`;
+            const startsWithPrefix = conversationId.startsWith(teamPrefix) || conversationId.startsWith(agentPrefix);
+            
+            if (startsWithPrefix) {
+              // Use knownProjectId to parse - parseConversationId will validate the prefix
+              try {
+                parsed = parseConversationId(conversationId, projectId);
+                // Critical: parsed projectId must match exactly
+                // parseConversationId returns the knownProjectId, so this should always be true
+                // if the prefix check passed, but we verify anyway for safety
+                if (parsed.projectId !== projectId) {
+                  continue; // Skip - doesn't match
+                }
+                // The prefix check is sufficient: if conversationId starts with "team-{projectId}-",
+                // it belongs to this project. The parseConversationId call validates this structure.
+              } catch (retryError: any) {
+                // Still ambiguous or invalid - skip it
+                if (process.env.NODE_ENV === 'development' || process.env.DEV) {
+                  console.warn(`⚠️ Skipping ambiguous conversationId for memory retrieval: ${conversationId}`, retryError.message);
+                }
+                continue;
+              }
+            } else {
+              // ConversationId doesn't explicitly start with our projectId - skip it
+              // This prevents substring false positives
+              continue;
+            }
+          } else {
+            // Invalid format - skip it
+            if (process.env.NODE_ENV === 'development' || process.env.DEV) {
+              console.warn(`⚠️ Skipping invalid conversationId for memory retrieval: ${conversationId}`, error.message);
+            }
+            continue;
+          }
+        }
+        
+        // Only include memories if parsing succeeds AND projectId matches exactly
+        if (parsed.projectId === projectId) {
+          projectMemories.push(...memories);
+        }
+      } catch (error: any) {
+        // Final safety net - ignore any unexpected errors
+        if (process.env.NODE_ENV === 'development' || process.env.DEV) {
+          console.warn(`⚠️ Unexpected error parsing conversationId for memory retrieval: ${conversationId}`, error.message);
+        }
       }
     }
     
@@ -881,6 +939,53 @@ export class MemStorage implements IStorage {
     indicatorsToDelete.forEach(key => this.typingIndicators.delete(key));
     
     return conversationDeleted;
+  }
+
+  // Task methods
+  async getTasksByProject(projectId: string): Promise<Task[]> {
+    return Array.from(this.tasks.values())
+      .filter(task => task.projectId === projectId);
+  }
+
+  async getTasksByAssignee(assigneeId: string): Promise<Task[]> {
+    return Array.from(this.tasks.values())
+      .filter(task => task.assigneeId === assigneeId);
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const newTask: Task = {
+      id: task.id || randomUUID(),
+      title: task.title,
+      description: task.description || null,
+      priority: task.priority || 'Medium',
+      status: task.status || 'pending',
+      assigneeId: task.assigneeId || null,
+      projectId: task.projectId,
+      category: task.category || 'Development',
+      estimatedEffort: task.estimatedEffort || 'Medium',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.tasks.set(newTask.id, newTask);
+    return newTask;
+  }
+
+  async updateTask(id: string, updates: Partial<Task>): Promise<Task | undefined> {
+    const task = this.tasks.get(id);
+    if (!task) return undefined;
+    
+    const updatedTask = { 
+      ...task, 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+    this.tasks.set(id, updatedTask);
+    return updatedTask;
+  }
+
+  async deleteTask(id: string): Promise<boolean> {
+    return this.tasks.delete(id);
   }
 }
 

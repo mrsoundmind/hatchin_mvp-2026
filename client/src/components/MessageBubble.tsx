@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Reply } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Copy, MoreHorizontal, Reply, Square, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -231,11 +231,68 @@ export function MessageBubble({
                   >
                     {message.content}
                   </ReactMarkdown>
-                  {/* B1.2: Streaming indicator for AI messages */}
+                  {/* B1.2: Enhanced streaming indicator for AI messages */}
                   {message.isStreaming && (
-                    <span className="inline-flex items-center ml-2">
-                      <span className="animate-pulse text-green-400">|</span>
-                    </span>
+                    <div className="inline-flex items-center ml-2 space-x-2">
+                      {/* Agent name typing indicator */}
+                      <span className="text-xs text-gray-400">
+                        {message.senderName} is typing...
+                      </span>
+                      {/* Enhanced typing cursor with multiple dots */}
+                      <div className="flex items-center space-x-0.5">
+                        <motion.span
+                          className="w-1 h-4 bg-green-400 rounded-full"
+                          animate={{ opacity: [1, 0.3, 1] }}
+                          transition={{ 
+                            duration: 0.8, 
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                        <motion.span
+                          className="w-1 h-4 bg-green-400 rounded-full"
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ 
+                            duration: 0.8, 
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: 0.2
+                          }}
+                        />
+                        <motion.span
+                          className="w-1 h-4 bg-green-400 rounded-full"
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ 
+                            duration: 0.8, 
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: 0.4
+                          }}
+                        />
+                      </div>
+                      
+                      {/* B1.3: Stop streaming button */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                // Stop streaming logic would go here
+                                console.log('Stop streaming for message:', message.id);
+                              }}
+                              className="h-4 px-1 text-xs text-gray-400 hover:text-red-400 hover:bg-red-50"
+                            >
+                              <Square className="w-3 h-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Stop generation</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   )}
                 </div>
               </div>
@@ -244,6 +301,25 @@ export function MessageBubble({
               <div className={`text-xs mt-1 px-1 ${isUser ? 'text-right text-gray-400' : 'text-left text-gray-500'}`}>
                 {formatRelativeTime(message.timestamp)}
               </div>
+
+              {/* B1.4: Enhanced error handling UI */}
+              {message.status === 'failed' && (
+                <div className="flex items-center space-x-2 text-red-400 text-xs mt-1">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Failed to generate response</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 px-1 text-xs hover:text-red-600"
+                    onClick={() => {
+                      // Retry logic would go here
+                      console.log('Retry streaming for message:', message.id);
+                    }}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
 
               {/* A1.1 & A1.4: Reaction buttons for agent messages */}
               <AnimatePresence>

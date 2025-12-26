@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { devLog } from './devLog';
 
 interface WebSocketMessage {
   type: string;
@@ -32,6 +33,12 @@ export function useWebSocket(url: string, options?: {
 
       ws.onopen = () => {
         console.log('WebSocket connected');
+        
+        devLog('WEBSOCKET_CONNECTED', {
+          url,
+          readyState: ws.readyState
+        });
+        
         setConnectionStatus('connected');
         setSocket(ws);
         options?.onConnect?.();
@@ -73,8 +80,26 @@ export function useWebSocket(url: string, options?: {
 
   const sendMessage = (message: WebSocketMessage) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
+      // Extract conversationId defensively
+      const conversationId = message.conversationId || message.message?.conversationId || null;
+      
+      devLog('WEBSOCKET_SEND', {
+        messageType: message.type,
+        conversationId,
+        readyState: socket.readyState
+      });
+      
       socket.send(JSON.stringify(message));
     } else {
+      const conversationId = message.conversationId || message.message?.conversationId || null;
+      
+      devLog('WEBSOCKET_SEND_BLOCKED', {
+        messageType: message.type,
+        conversationId,
+        readyState: socket?.readyState,
+        reason: 'not_connected'
+      });
+      
       console.warn('WebSocket is not connected. Message not sent:', message);
     }
   };
@@ -103,7 +128,48 @@ export function useWebSocket(url: string, options?: {
 // WebSocket URL helper
 export function getWebSocketUrl(): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${window.location.host}/ws`;
+  const wsHost = import.meta.env?.VITE_WS_HOST;
+  const wsPort = import.meta.env?.VITE_WS_PORT;
+  const wsPath = import.meta.env?.VITE_WS_PATH ?? '/ws';
+  
+  // Ensure path begins with /
+  const path = wsPath.startsWith('/') ? wsPath : `/${wsPath}`;
+
+  // Dev-only diagnostic logs
+  if (import.meta.env.DEV) {
+    console.log('[WebSocket URL Debug]', {
+      'VITE_WS_HOST': wsHost,
+      'VITE_WS_PORT': wsPort,
+      'VITE_WS_PATH': wsPath,
+      'window.location.host': window.location.host,
+      'window.location.hostname': window.location.hostname,
+      'window.location.port': window.location.port,
+      'window.location.protocol': window.location.protocol
+    });
+  }
+
+  let wsUrl: string;
+
+  if (wsHost || wsPort !== undefined) {
+    // Explicit configuration: construct URL manually
+    const host = wsHost ?? window.location.hostname;
+    // Only include port if explicitly provided and non-empty
+    // If wsPort is undefined, don't include port (use default port for protocol)
+    const port = (wsPort !== undefined && wsPort !== null && wsPort.trim() !== '') 
+      ? `:${wsPort}` 
+      : '';
+    wsUrl = `${protocol}//${host}${port}${path}`;
+  } else {
+    // Default: use current origin (handles port automatically, no undefined issues)
+    wsUrl = `${protocol}//${window.location.host}${path}`;
+  }
+
+  // Dev-only diagnostic logs
+  if (import.meta.env.DEV) {
+    console.log('[WebSocket URL Debug] Computed URL:', wsUrl);
+  }
+
+  return wsUrl;
 }
 
 // Message type definitions for type safety
