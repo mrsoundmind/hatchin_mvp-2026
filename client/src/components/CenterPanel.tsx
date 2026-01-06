@@ -12,8 +12,7 @@ import { AddHatchModal } from './AddHatchModal';
 import { TaskApprovalModal } from './TaskApprovalModal';
 import { buildConversationId } from '@/lib/conversationId';
 import { devLog } from '@/lib/devLog';
-
-type ChatMode = 'project' | 'team' | 'agent';
+import { deriveChatMode, type ChatMode } from '@/lib/chatMode';
 
 interface ChatContext {
   mode: ChatMode;
@@ -98,6 +97,9 @@ export function CenterPanel({
   
   // Add Hatch Modal state
   const [showAddHatchModal, setShowAddHatchModal] = useState(false);
+
+  // Message input state (for deterministic send gating)
+  const [inputValue, setInputValue] = useState('');
 
   // Message state management - persistent across conversations
   const [allMessages, setAllMessages] = useState<Record<string, Array<{
@@ -840,25 +842,22 @@ export function CenterPanel({
     });
 
     // Implement chatMode derivation logic based on sidebar selections
-    let newMode: ChatMode;
+    const newMode: ChatMode = deriveChatMode({ activeAgentId, activeTeamId });
     let participantIds: string[];
     let conversationId: string;
     
-    if (activeAgentId) {
+    if (newMode === 'agent' && activeAgentId) {
       // Agent mode: Talk to specific agent (1-on-1)
-      newMode = 'agent';
       participantIds = [activeAgentId];
       conversationId = buildConversationId('agent', activeProject.id, activeAgentId);
-    } else if (activeTeamId) {
+    } else if (newMode === 'team' && activeTeamId) {
       // Team mode: Talk to all agents under specific team
-      newMode = 'team';
       participantIds = activeProjectAgents
         .filter(agent => agent.teamId === activeTeamId)
         .map(agent => agent.id);
       conversationId = buildConversationId('team', activeProject.id, activeTeamId);
     } else {
       // Project mode: Talk to all teams and agents under project
-      newMode = 'project';
       participantIds = activeProjectAgents.map(agent => agent.id);
       conversationId = buildConversationId('project', activeProject.id);
     }
@@ -977,8 +976,10 @@ export function CenterPanel({
     switch (currentChatContext.mode) {
       case 'project':
         return {
-          title: `${activeProject?.name}`,
-          subtitle: `Project Chat • ${activeProjectTeams.length} teams`,
+          // Header identity in project mode is hard-locked to PM Maya
+          // and derived ONLY from mode (not from agents list).
+          title: 'Maya',
+          subtitle: 'Project Manager',
           participants,
           placeholder: `Message all teams in ${activeProject?.name}...`,
           welcomeTitle: 'Talk to your entire project team',
@@ -1024,6 +1025,24 @@ export function CenterPanel({
   };
 
   const contextDisplay = getChatContextDisplay();
+
+  // Dev-only UI invariant check: in project mode, header must be Maya (PM)
+  useEffect(() => {
+    if (
+      import.meta.env.DEV &&
+      typeof window !== 'undefined' &&
+      (window as any).HATCHIN_UI_AUDIT &&
+      currentChatContext?.mode === 'project'
+    ) {
+      if (contextDisplay.title !== 'Maya' || contextDisplay.subtitle !== 'Project Manager') {
+        devLog('HEADER_INVARIANT_VIOLATION', {
+          mode: currentChatContext.mode,
+          title: contextDisplay.title,
+          subtitle: contextDisplay.subtitle
+        });
+      }
+    }
+  }, [currentChatContext?.mode, contextDisplay.title, contextDisplay.subtitle]);
 
   // Get chat context color for bubble styling
   const getChatContextColor = () => {
@@ -1315,10 +1334,19 @@ export function CenterPanel({
     
     if (message) {
       try {
-        // Send message through chat submit flow directly
-        const messageContext = validateMessageContext();
+        // Send message through chat submit flow directly.
+        // Send gating: transport + input + context existence.
+        // Must have: connectionStatus === 'connected', non-empty input, conversationId, and activeProject.
+        // Must NOT depend on: recipients count, agent availability, memory write permissions.
+        const canSend = 
+          connectionStatus === 'connected' &&
+          message.trim().length > 0 &&
+          currentChatContext?.conversationId &&
+          currentChatContext.conversationId.trim().length > 0 &&
+          activeProject?.id &&
+          activeProject.id.trim().length > 0;
         
-        if (messageContext.canSendMessage && currentChatContext) {
+        if (canSend && currentChatContext) {
           const tempMessageId = `temp-${Date.now()}`;
           const timestamp = new Date().toISOString();
           
@@ -1371,7 +1399,18 @@ export function CenterPanel({
           conversationId: currentChatContext.conversationId
         });
         } else {
-          console.error('Cannot send message: validation failed');
+          // Dev-only log if audit flag enabled
+          devLog('SEND_BLOCKED', {
+            reason: !connectionStatus || connectionStatus !== 'connected' ? 'not_connected' :
+                    !message || message.trim().length === 0 ? 'empty_input' :
+                    !currentChatContext?.conversationId ? 'missing_conversationId' :
+                    !activeProject?.id ? 'missing_activeProjectId' :
+                    'unknown',
+            connectionStatus,
+            hasInput: message.trim().length > 0,
+            hasConversationId: !!currentChatContext?.conversationId,
+            hasActiveProject: !!activeProject?.id
+          });
         }
       } catch (error) {
         console.error('Error sending action message:', error);
@@ -1383,9 +1422,9 @@ export function CenterPanel({
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const input = form.elements.namedItem('message') as HTMLInputElement;
+    const trimmed = input.value.trim();
     
-    if (input.value.trim()) {
-      const messageContext = validateMessageContext();
+    if (trimmed) {
       const recipients = getMessageRecipients();
       
       devLog('SEND_ATTEMPT', {
@@ -1396,14 +1435,25 @@ export function CenterPanel({
         connectionStatus
       });
       
-      if (messageContext.canSendMessage) {
+      // Send gating: transport + input + context existence.
+      // Must have: connectionStatus === 'connected', non-empty input, conversationId, and activeProject.
+      // Must NOT depend on: recipients count, agent availability, memory write permissions.
+      const canSend = 
+        connectionStatus === 'connected' &&
+        trimmed.length > 0 &&
+        currentChatContext?.conversationId &&
+        currentChatContext.conversationId.trim().length > 0 &&
+        activeProject?.id &&
+        activeProject.id.trim().length > 0;
+      
+      if (canSend) {
         const tempMessageId = `temp-${Date.now()}`;
         const timestamp = new Date().toISOString();
         
         // C1.3: Create user message with thread support
         const userMessage = {
           id: tempMessageId,
-          content: input.value,
+          content: trimmed,
           senderId: 'user',
           senderName: 'You',
           messageType: 'user' as const,
@@ -1442,7 +1492,7 @@ export function CenterPanel({
             id: tempMessageId,
             conversationId: currentChatContext?.conversationId || '',
             userId: 'user',
-            content: input.value,
+            content: trimmed,
             messageType: 'user' as const,
             timestamp,
             senderName: 'You',
@@ -1489,6 +1539,7 @@ export function CenterPanel({
         
         // Clear input and reply state immediately after sending
         input.value = '';
+        setInputValue('');
         if (replyingTo) {
           clearReply();
         }
@@ -1510,7 +1561,18 @@ export function CenterPanel({
           }
         }, 500);
       } else {
-        console.warn('Cannot send message - invalid context or permissions');
+        // Dev-only log if audit flag enabled
+        devLog('SEND_BLOCKED', {
+          reason: !connectionStatus || connectionStatus !== 'connected' ? 'not_connected' :
+                  !trimmed || trimmed.length === 0 ? 'empty_input' :
+                  !currentChatContext?.conversationId ? 'missing_conversationId' :
+                  !activeProject?.id ? 'missing_activeProjectId' :
+                  'unknown',
+          connectionStatus,
+          hasInput: trimmed.length > 0,
+          hasConversationId: !!currentChatContext?.conversationId,
+          hasActiveProject: !!activeProject?.id
+        });
       }
     }
   };
@@ -2029,6 +2091,8 @@ export function CenterPanel({
             placeholder={isStreaming ? "AI is responding..." : contextDisplay.placeholder}
             disabled={isStreaming}
             autoComplete="off"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             className={`w-full hatchin-bg-card hatchin-border border rounded-lg px-4 py-3 text-sm hatchin-text placeholder-hatchin-text-muted focus:outline-none focus:ring-2 focus:ring-hatchin-blue focus:border-transparent ${
               isStreaming ? 'opacity-50 cursor-not-allowed' : ''
             }`}

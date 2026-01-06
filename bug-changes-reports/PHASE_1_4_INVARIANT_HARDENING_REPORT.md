@@ -202,7 +202,13 @@ agentId: isSystemFallback ? null : (respondingAgent && respondingAgent.id !== 's
    - Added explicit fallback classification metadata
    - Enforced no fake "System agent" invariant
 
-**Total Lines Changed**: ~75 lines (documentation + code)
+4. **`client/src/components/CenterPanel.tsx`** (~40 lines changed)
+   - Centralized chat mode derivation via `deriveChatMode`
+   - Hard-locked project header identity to PM Maya
+   - Simplified send gating to depend only on WebSocket connection + trimmed input
+   - Added dev-only header invariant check using `devLog`
+
+**Total Lines Changed**: ~115 lines (documentation + code)
 
 ---
 
@@ -258,6 +264,14 @@ agentId: isSystemFallback ? null : (respondingAgent && respondingAgent.id !== 's
    - Run production build
    - Verify no `[HATCHIN_UI_AUDIT]` logs appear
    - In dev mode without `window.HATCHIN_UI_AUDIT = true`, verify no logs
+
+4. **UI Invariant Hardening (Chat Mode + Header + Send Gating)**:
+   - Enable audit logs in dev: `window.HATCHIN_UI_AUDIT = true`
+   - Create a "Start with an idea" project and confirm:
+     - `POST_CREATE_AUTO_SELECTION` and `CHAT_CONTEXT_COMPUTED` logs show `activeAgentId: null` and `mode: 'project'`
+     - Chat header title is `Maya` with subtitle `Project Manager`
+   - Type a non-empty message in project scope with WebSocket `connectionStatus === 'connected'` and confirm sending succeeds
+   - Select a team, then an agent, and verify `CHAT_CONTEXT_COMPUTED` mode flips to `team` / `agent`, headers reflect that scope, and sending continues to work
 
 ---
 
